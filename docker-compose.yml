@@ -1,0 +1,24 @@
+services:
+  catalog:
+    image: ghcr.io/yvmoritz/mc_catalog:latest
+    # Lokal bauen statt aus der Registry: nächste Zeile einkommentieren, dann "docker compose up -d --build"
+    # build: .
+    container_name: mc-catalog
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Benutzername aus dem Basic-Header des Proxys (NPM Access List mit "Pass Auth to Host")
+      AUTH_BASIC: "${AUTH_BASIC:-true}"
+      # ohne Benutzer kein Zugriff (Betrieb hinter Nginx Proxy Manager)
+      REQUIRE_AUTH: "${REQUIRE_AUTH:-true}"
+      # Beispielmodell "Demo" (X123) beim ersten Start anlegen
+      SEED_DEMO: "false"
+      # Bild-Import per URL auch aus dem internen Netz erlauben (Standard: gesperrt, SSRF-Schutz)
+      IMG_FETCH_ALLOW_PRIVATE: "false"
+      TZ: Europe/Madrid
+    volumes:
+      - catalog-data:/data
+
+volumes:
+  catalog-data:
