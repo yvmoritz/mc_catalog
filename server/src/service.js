@@ -59,6 +59,14 @@ function patchSql(table, id, fields) {
   return { sql: `UPDATE ${table} SET ${keys.map((k) => `${k} = @${k}`).join(', ')} WHERE id = @id`, params: { ...Object.fromEntries(keys.map((k) => [k, fields[k]])), id } };
 }
 
+const TENANT_COLS = 'id, slug, name, short, color_primary, color_accent, sku_prefix, sku_digits, next_no, currency, created_at, logo_mime, logo_dark_mime, logo_v';
+/** Logo-URLs statt Binärdaten */
+function withLogo(t) {
+  const { logo_mime, logo_dark_mime, logo_v, ...rest } = t;
+  const url = (v) => `/api/tenants/${t.id}/logo/${v}?v=${logo_v}`;
+  return { ...rest, logo: logo_mime ? url('light') : null, logo_dark: logo_dark_mime ? url('dark') : null };
+}
+
 export class Service {
   constructor(db, hub) {
     this.db = db;
@@ -106,16 +114,16 @@ export class Service {
 
   // ---------- Mandanten ----------
   tenant(id) {
-    const t = this.get('SELECT * FROM tenant WHERE id = ?', id);
+    const t = this.get(`SELECT ${TENANT_COLS} FROM tenant WHERE id = ?`, id);
     if (!t) throw new HttpError(404, 'not_found', 'Mandant nicht gefunden');
-    return t;
+    return withLogo(t);
   }
-  tenantBySlug(slug) { return this.get('SELECT * FROM tenant WHERE slug = ?', slug); }
+  tenantBySlug(slug) { return this.get('SELECT id, slug FROM tenant WHERE slug = ?', slug); }
   listTenants(user) {
-    const sql = `SELECT t.*, (SELECT COUNT(*) FROM product p WHERE p.tenant_id = t.id) AS product_count FROM tenant t`;
+    const sql = `SELECT ${TENANT_COLS.replace(/(^|, )(?=[a-z])/g, '$1t.')}, (SELECT COUNT(*) FROM product p WHERE p.tenant_id = t.id) AS product_count FROM tenant t`;
     return user
-      ? this.all(`${sql} JOIN tenant_access a ON a.tenant_id = t.id AND a.user_name = ? ORDER BY t.name`, user)
-      : this.all(`${sql} ORDER BY t.name`);
+      ? this.all(`${sql} JOIN tenant_access a ON a.tenant_id = t.id AND a.user_name = ? ORDER BY t.name`, user).map(withLogo)
+      : this.all(`${sql} ORDER BY t.name`).map(withLogo);
   }
   tenantFields(b) {
     return {
@@ -150,6 +158,29 @@ export class Service {
     this.patch('tenant', id, this.tenantFields(b));
     this.emit(id, 'tenant', by);
     return this.tenant(id);
+  }
+  setLogo(id, variant, mime, buf, by) {
+    this.tenant(id);
+    if (!['light', 'dark'].includes(variant)) throw new HttpError(400, 'invalid', 'Variante light oder dark');
+    const col = variant === 'dark' ? 'logo_dark' : 'logo';
+    if (buf === null) {
+      this.run(`UPDATE tenant SET ${col} = NULL, ${col}_mime = NULL, logo_v = logo_v + 1 WHERE id = ?`, id);
+    } else {
+      if (!['image/png', 'image/svg+xml'].includes(mime)) throw new HttpError(400, 'invalid', 'Logo muss PNG oder SVG sein');
+      if (buf.length > 512 * 1024) throw new HttpError(400, 'invalid', 'Logo größer als 512 KB');
+      const isPng = buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+      const isSvg = /<svg[\s>]/i.test(buf.subarray(0, 4096).toString('utf8'));
+      if ((mime === 'image/png' && !isPng) || (mime === 'image/svg+xml' && !isSvg)) throw new HttpError(400, 'invalid', 'Dateiinhalt passt nicht zum Format');
+      this.run(`UPDATE tenant SET ${col} = ?, ${col}_mime = ?, logo_v = logo_v + 1 WHERE id = ?`, buf, mime, id);
+    }
+    this.emit(id, 'tenant', by);
+    return this.tenant(id);
+  }
+  logo(id, variant) {
+    const col = variant === 'dark' ? 'logo_dark' : 'logo';
+    const r = this.get(`SELECT ${col} AS data, ${col}_mime AS mime FROM tenant WHERE id = ?`, id);
+    if (!r?.data) throw new HttpError(404, 'not_found', 'Kein Logo');
+    return r;
   }
   deleteTenant(id) { this.tenant(id); this.run('DELETE FROM tenant WHERE id = ?', id); }
   tenantAccess(id) {

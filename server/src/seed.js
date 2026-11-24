@@ -1,9 +1,26 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ASSETS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets');
+
 // Erster Start: Mandant Maison Condat mit Kategorien, Optionen und Lieferanten. Optional ein Beispielmodell.
 const L = (es, de, en) => ({ es, de, en: en ?? de });
+
+/** bestehende Installation: MC-Logo nachrüsten, wenn Maison Condat noch keins hat */
+export function backfillLogo(svc) {
+  const t = svc.get("SELECT id FROM tenant WHERE slug = 'maison-condat' AND logo IS NULL AND logo_dark IS NULL");
+  if (!t) return;
+  svc.setLogo(t.id, 'light', 'image/svg+xml', fs.readFileSync(path.join(ASSETS, 'mc-brown.svg')));
+  svc.setLogo(t.id, 'dark', 'image/svg+xml', fs.readFileSync(path.join(ASSETS, 'mc-sand.svg')));
+}
 
 export function seedIfEmpty(svc, { demo = false } = {}) {
   if (svc.get('SELECT 1 FROM tenant LIMIT 1')) return false;
   const t = svc.createTenant({ name: 'Maison Condat', slug: 'maison-condat', short: 'MC', color_primary: '#4D231B', color_accent: '#EAD3B1', sku_prefix: 'X', sku_digits: 3, next_no: 123, currency: 'USD' });
+
+  svc.setLogo(t.id, 'light', 'image/svg+xml', fs.readFileSync(path.join(ASSETS, 'mc-brown.svg')));
+  svc.setLogo(t.id, 'dark', 'image/svg+xml', fs.readFileSync(path.join(ASSETS, 'mc-sand.svg')));
 
   const gl = svc.createCategory(t.id, { name: 'Gafas', sku_pattern: '{basis}.{farbe}{pol}' });
   const farbe = svc.createOpt(gl.id, { key: 'farbe', labels: L('Color', 'Farbe', 'Colour'), is_color: true });

@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from './db.js';
 import { buildApp } from './app.js';
-import { seedIfEmpty } from './seed.js';
+import { seedIfEmpty, backfillLogo } from './seed.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -23,6 +23,7 @@ const app = buildApp({
 });
 
 seedIfEmpty(app.svc, { demo: bool(env.SEED_DEMO) });
+backfillLogo(app.svc);
 
 const port = Number(env.PORT || 3000);
 await app.listen({ port, host: env.HOST || '0.0.0.0' });

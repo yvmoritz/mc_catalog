@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import sharp from 'sharp';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -71,10 +72,21 @@ export async function catalogPdf(data, store, opts = {}) {
     doc.circle(x, y, r).lineWidth(0.6).strokeColor('#00000040').stroke().restore();
   };
 
+  // Logo als PNG (SVG über sharp gerastert); opts.logo = { data, mime }, für dunklen Grund
+  let logoPng = null;
+  if (opts.logo?.data) {
+    try { logoPng = await sharp(opts.logo.data, { density: 600 }).resize({ width: 1400, height: 700, fit: 'inside' }).png().toBuffer(); } catch { logoPng = null; }
+  }
+
   // ---------- Deckblatt ----------
   doc.rect(0, 0, W, H).fill(brand);
-  doc.fillColor(accent).font('l').fontSize(14).text(t.title.toUpperCase(), M, 140, { characterSpacing: 3 });
-  doc.fillColor('#FFFFFF').font('l').fontSize(44).text(data.tenant.name, M, 170, { width: CW });
+  let ty = 140;
+  if (logoPng) {
+    doc.image(logoPng, M, 110, { fit: [220, 110], align: 'left', valign: 'top' });
+    ty = 260;
+  }
+  doc.fillColor(accent).font('l').fontSize(14).text(t.title.toUpperCase(), M, ty, { characterSpacing: 3 });
+  doc.fillColor('#FFFFFF').font('l').fontSize(44).text(data.tenant.name, M, ty + 30, { width: CW });
   const nVar = products.reduce((s, p) => s + p.variants.filter((v) => v.status === 'active' || opts.includeInactive).length, 0);
   doc.fillColor(accent).font('r').fontSize(12).text(`${products.length} ${t.models} · ${nVar} ${t.variants}`, M, doc.y + 12);
   const sups = [...new Set(products.map((p) => supById.get(p.supplier_id)?.name).filter(Boolean))];

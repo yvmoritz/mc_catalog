@@ -111,6 +111,19 @@ export function buildApp(opts) {
     files.forEach((f) => store.remove(f));
     return gone(reply);
   });
+  app.put('/api/tenants/:id/logo/:variant', async (req) => {
+    const b = body(req);
+    if (typeof b.data !== 'string') throw new HttpError(400, 'invalid', 'data (Base64) fehlt');
+    return svc.setLogo(id(req.params.id), req.params.variant, String(b.mime || ''), Buffer.from(b.data, 'base64'), req.user);
+  });
+  app.delete('/api/tenants/:id/logo/:variant', async (req) => svc.setLogo(id(req.params.id), req.params.variant, null, null, req.user));
+  app.get('/api/tenants/:id/logo/:variant', async (req, reply) => {
+    const r = svc.logo(id(req.params.id), req.params.variant);
+    // SVG nie als Dokument mit Skripten ausführen
+    return reply.header('Content-Type', r.mime).header('X-Content-Type-Options', 'nosniff')
+      .header('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox")
+      .header('Cache-Control', 'private, max-age=31536000, immutable').send(r.data);
+  });
   app.get('/api/tenants/:id/access', async (req) => ({ users: svc.tenantAccess(id(req.params.id)) }));
   app.put('/api/tenants/:id/access', async (req) => ({ users: svc.setTenantAccess(id(req.params.id), body(req).users) }));
   app.get('/api/users', async () => svc.users());
@@ -123,7 +136,9 @@ export function buildApp(opts) {
     const tid = id(req.params.id);
     const q = req.query || {};
     const data = svc.full(tid);
+    const logoOf = (v) => { try { return svc.logo(tid, v); } catch { return null; } };
     const pdf = await catalogPdf(data, store, {
+      logo: logoOf('dark') || logoOf('light'),
       lang: q.lang, supplierId: q.supplier ? Number(q.supplier) : null, categoryId: q.category ? Number(q.category) : null,
       includeInactive: q.inactive === '1', productIds: q.products ? String(q.products).split(',').map(Number).filter(Boolean) : null,
     });

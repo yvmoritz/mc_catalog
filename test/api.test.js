@@ -143,3 +143,22 @@ test('unauthenticated is rejected', async () => {
   const r = await app.inject({ method: 'GET', url: '/api/tenants' });
   assert.equal(r.statusCode, 401);
 });
+
+test('tenant logo: seeded, served as svg, upload checks, not in json as blob', async () => {
+  const { admin } = setup();
+  const [t] = (await admin('GET', '/api/tenants')).json();
+  assert.match(t.logo, /\/logo\/light\?v=\d+/);
+  assert.ok(t.logo_dark);
+  let r = await admin('GET', t.logo);
+  assert.equal(r.status, 200);
+  assert.equal(r.headers['content-type'], 'image/svg+xml');
+  assert.match(r.headers['content-security-policy'], /sandbox/);
+  const full = (await admin('GET', `/api/tenants/${t.id}/full`)).json();
+  assert.equal(typeof full.tenant.logo, 'string');
+  r = await admin('PUT', `/api/tenants/${t.id}/logo/light`, { mime: 'image/png', data: Buffer.from('nope').toString('base64') });
+  assert.equal(r.status, 400);
+  r = await admin('DELETE', `/api/tenants/${t.id}/logo/light`);
+  assert.equal(r.json().logo, null);
+  r = await admin('GET', `/api/tenants/${t.id}/catalog.pdf`);
+  assert.equal(r.status, 200);
+});

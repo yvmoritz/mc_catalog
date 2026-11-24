@@ -71,6 +71,8 @@ export function applyBranding() {
   for (const v of BRAND_VARS) st.removeProperty(v);
   const tn = ui.data?.tenant;
   document.title = tn ? `${tn.name} · ${t('app')}` : t('app');
+  const fav = document.querySelector('link[rel="icon"]');
+  if (fav) fav.href = tn?.logo || tn?.logo_dark || '/brand/mc-brown.svg';
   if (!tn) return;
   const p = tn.color_primary, a = tn.color_accent;
   if (ui.theme !== 'dark') {

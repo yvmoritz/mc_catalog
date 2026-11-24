@@ -4,6 +4,7 @@
 
   let open = $state(null); // 'tenant' | 'menu'
   const tn = $derived(ui.data?.tenant);
+  const logo = $derived(tn ? (ui.theme === 'dark' ? tn.logo_dark || tn.logo : tn.logo || tn.logo_dark) : null);
   const page = $derived(ui.route.page);
   const onProducts = $derived(page === 'products');
   const toggle = (k) => (open = open === k ? null : k);
@@ -33,8 +34,13 @@
 <header>
   <div class="pop">
     <button type="button" class="tbtn" aria-haspopup="menu" aria-expanded={open === 'tenant'} onclick={() => toggle('tenant')}>
-      <span class="logo" aria-hidden="true">{tn?.short || '·'}</span>
-      <span class="tt"><span class="cap sm">{t('tenant')}</span><span class="tnm">{tn?.name ?? '—'}</span></span>
+      {#if logo}
+        <img class="limg" src={logo} alt={tn.name}>
+        <span class="sr">{t('tenant')}: {tn.name}</span>
+      {:else}
+        <span class="logo" aria-hidden="true">{tn?.short || '·'}</span>
+        <span class="tt"><span class="cap sm">{t('tenant')}</span><span class="tnm">{tn?.name ?? '—'}</span></span>
+      {/if}
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
     </button>
     {#if open === 'tenant'}
@@ -111,6 +117,8 @@
   .tbtn:hover { background: var(--pill); }
   .logo { width: 40px; height: 40px; border-radius: 10px; background: var(--brand); color: var(--sand); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; letter-spacing: 0.04em; }
   :global(.dark) .logo { color: var(--on-brand); }
+  .limg { height: 40px; width: auto; max-width: 140px; object-fit: contain; display: block; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .tt { display: flex; flex-direction: column; line-height: 1.2; }
   .sm { font-size: 12px; }
   .tnm { font-size: 16px; font-weight: 600; }

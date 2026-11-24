@@ -41,6 +41,19 @@
   }
   const unknownTokens = (c) => tokens(c.sku_pattern).filter((k) => !['basis', 'lieferant', 'jahr', ...c.options.map((o) => o.key)].includes(k));
 
+  async function uploadLogo(variant, e) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    const mime = f.type === 'image/svg+xml' || /\.svg$/i.test(f.name) ? 'image/svg+xml' : f.type;
+    const buf = new Uint8Array(await f.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    await mutate(() => api.put(`/tenants/${tn.id}/logo/${variant}`, { mime, data: btoa(bin) }));
+    loadTenants();
+  }
+  const delLogo = async (variant) => { await mutate(() => api.del(`/tenants/${tn.id}/logo/${variant}`)); loadTenants(); };
+
   async function loadAccess() { try { access = (await api.get(`/tenants/${tn.id}/access`)).users; } catch (e) { toast(e.message, 'error'); } }
   $effect(() => { if (ui.isAdmin && tn) loadAccess(); });
   async function toggleAccess(u) {
@@ -73,6 +86,21 @@
         <label class="field"><span>{t('currency')}</span>
           <select class="select" value={tn.currency} onchange={(e) => saveT('currency', e.target.value)}>{#each ['EUR', 'USD', 'CNY', 'GBP'] as c (c)}<option value={c}>{c}</option>{/each}</select></label>
       </div>
+      <div class="grid2">
+        {#each [['light', tn.logo, t('logoLight')], ['dark', tn.logo_dark, t('logoDark')]] as [v, url, label] (v)}
+          <div class="field">
+            <span>{label}</span>
+            <div class="lg" style={v === 'dark' ? `background:${tn.color_primary || '#4D231B'}` : ''}>
+              {#if url}<img src={url} alt="{t('logo')} {v}">{:else}<span class="cap">—</span>{/if}
+            </div>
+            <span class="row">
+              <label class="btn sm">{t('add')}…<input type="file" accept="image/png,image/svg+xml,.svg" hidden onchange={(e) => uploadLogo(v, e)}></label>
+              {#if url}<button type="button" class="btn ghost sm" onclick={() => delLogo(v)}>{t('delete')}</button>{/if}
+            </span>
+          </div>
+        {/each}
+      </div>
+      <span class="cap">{t('logoHint')}</span>
       {#if ui.isAdmin && ui.tenants.length > 1}<button type="button" class="btn ghost sm al" onclick={delTenant}>{t('delete')} {tn.name}</button>{/if}
     </section>
 
@@ -178,6 +206,10 @@
   .cols > .box { flex: 1 1 420px; }
   .f1 { flex: 1 1 auto; }
   .al { align-self: flex-start; }
+  .lg { height: 84px; border-radius: 12px; background: #F2F1F1; display: flex; align-items: center; justify-content: center; padding: 10px; box-sizing: border-box; }
+  .lg.dk { background: var(--brand-fixed, #4D231B); }
+  .lg img { max-height: 100%; max-width: 100%; object-fit: contain; }
+  label.btn { cursor: pointer; display: inline-flex; align-items: center; }
   .hint { margin: 0; line-height: 1.5; }
   input[type='color'] { width: 44px; height: 44px; border: 0; padding: 0; background: none; border-radius: 10px; }
   .cl input[type='color'] { width: 32px; height: 32px; }
