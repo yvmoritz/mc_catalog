@@ -4,6 +4,7 @@
   import { renderSku, normCode } from '$shared/sku.js';
   import { guessColor } from '../lib/color.js';
   import Swatch from './Swatch.svelte';
+  import Glasses from './Glasses.svelte';
 
   /** src: {file}|{url}|null — abgelegtes Bild */
   let { p, src = null, onclose } = $props();
@@ -27,10 +28,10 @@
       if (o.is_color) {
         const free = o.values.find((v) => !used(o.id).has(v.id));
         pick[o.id] = src ? 'new' : (free?.id ?? 'new');
-        nv[o.id] = { code: '', name: '', hex: '#888888', hex2: '' };
+        nv[o.id] = { code: '', name: '', hex: '#888888', hex2: '', hex3: '#5B6168' };
       } else {
         pick[o.id] = o.values[0]?.id ?? 'new';
-        nv[o.id] = { code: '', name: '', hex: '', hex2: '' };
+        nv[o.id] = { code: '', name: '', hex: '', hex2: '', hex3: '' };
       }
     }
     setSource(src);
@@ -56,7 +57,7 @@
     for (const o of cat.options) {
       if (pick[o.id] === 'new') {
         const n = nv[o.id];
-        new_values[o.id] = { code: n.code, labels: n.name ? { es: n.name, de: n.name, en: n.name } : undefined, hex: o.is_color ? n.hex : undefined, hex2: o.is_color && n.hex2 ? n.hex2 : undefined };
+        new_values[o.id] = { code: n.code, labels: n.name ? { es: n.name, de: n.name, en: n.name } : undefined, hex: o.is_color ? n.hex : undefined, hex2: o.is_color && n.hex2 ? n.hex2 : undefined, hex3: o.is_color && n.hex3 ? n.hex3 : undefined };
       } else if (pick[o.id]) values[o.id] = pick[o.id];
     }
     try {
@@ -111,8 +112,13 @@
               <input class="input code mono" placeholder={t('code')} aria-label="{t('code')} {lab(o.labels, o.key)}" bind:value={nv[o.id].code} maxlength="12">
               <input class="input" placeholder={t('label')} aria-label="{t('label')} {lab(o.labels, o.key)}" bind:value={nv[o.id].name} maxlength="40">
               {#if o.is_color}
-                <input type="color" aria-label={t('color')} bind:value={nv[o.id].hex}>
-                <input type="color" aria-label={t('color2')} title={t('color2')} value={nv[o.id].hex2 || '#ffffff'} oninput={(e) => (nv[o.id].hex2 = e.target.value)} class:off={!nv[o.id].hex2}>
+                <span class="cols">
+                  <label class="cp"><input type="color" bind:value={nv[o.id].hex}><span>{t('frame1')}</span></label>
+                  <label class="cp" class:off={!nv[o.id].hex2}><input type="color" value={nv[o.id].hex2 || '#ffffff'} oninput={(e) => (nv[o.id].hex2 = e.target.value)}><span>{t('color2')}</span>
+                    {#if nv[o.id].hex2}<button type="button" class="xs-x" aria-label="{t('color2')} {t('delete')}" onclick={(e) => { e.preventDefault(); nv[o.id].hex2 = ''; }}>×</button>{/if}</label>
+                  <label class="cp"><input type="color" bind:value={nv[o.id].hex3}><span>{t('color3')}</span></label>
+                  <Glasses value={nv[o.id]} width={64} />
+                </span>
               {/if}
             </div>
           {/if}
@@ -147,8 +153,14 @@
   .newrow { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
   .newrow .input { min-height: 38px; font-size: 14px; }
   .code { width: 84px; text-transform: uppercase; }
-  input[type='color'] { width: 38px; height: 38px; border: 0; padding: 0; background: none; border-radius: 10px; }
-  input.off { opacity: 0.45; }
+  input[type='color'] { width: 32px; height: 32px; border: 0; padding: 0; background: none; border-radius: 8px; }
+  .newrow { flex-wrap: wrap; }
+  .cols { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cp { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 500; color: var(--muted); position: relative; }
+  /* leer: gestricheltes Feld mit +, statt Weiß vorzutäuschen */
+  .cp.off input { opacity: 0; }
+  .cp.off::before { content: '+'; position: absolute; top: 2px; left: 50%; transform: translateX(-50%); width: 26px; height: 26px; box-sizing: border-box; border: 1.5px dashed var(--edge); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: var(--muted); pointer-events: none; }
+  .xs-x { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; border: 0; background: var(--ink); color: var(--surface); font-size: 11px; line-height: 1; padding: 0; }
   .pillset .pz { height: 32px; padding: 0 12px; font-size: 13px; }
   .sm { width: 160px; } .xs { width: 100px; }
   .out { height: 44px; display: flex; align-items: center; font-size: 15px; color: var(--brand); }

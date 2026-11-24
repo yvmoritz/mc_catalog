@@ -104,9 +104,16 @@ test('image upload (raw + data url), url guard, pdf, csv', async () => {
   r = await admin('POST', `/api/products/${p.id}/images/url`, { url: 'data:image/png;base64,' + (await png('#6B4226')).toString('base64') });
   assert.equal(r.status, 201);
   const img = r.json();
-  r = await admin('GET', `/api/images/${img.id}?size=t`);
+  assert.match(img.key, /^[a-z2-9]{8}$/);
+  r = await admin('GET', `/api/img/${img.key}?size=t`);
   assert.equal(r.status, 200);
   assert.equal(r.headers['content-type'], 'image/webp');
+  // gelöschtes Bild: Schlüssel weg, neues Bild bekommt einen neuen Schlüssel
+  await admin('DELETE', `/api/images/${img.id}`);
+  assert.equal((await admin('GET', `/api/img/${img.key}`)).status, 404);
+  r = await admin('POST', `/api/products/${p.id}/images/url`, { url: 'data:image/png;base64,' + (await png('#111111')).toString('base64') });
+  assert.notEqual(r.json().key, img.key);
+  assert.equal((await admin('GET', '/api/img/../../etc')).status, 404);
   r = await admin('POST', `/api/products/${p.id}/images/url`, { url: 'http://127.0.0.1:3000/x.png' });
   assert.equal(r.status, 400);
   r = await admin('POST', `/api/products/${p.id}/images/url`, { url: 'http://localhost/x.png' });
@@ -160,5 +167,20 @@ test('tenant logo: seeded, served as svg, upload checks, not in json as blob', a
   r = await admin('DELETE', `/api/tenants/${t.id}/logo/light`);
   assert.equal(r.json().logo, null);
   r = await admin('GET', `/api/tenants/${t.id}/catalog.pdf`);
+  assert.equal(r.status, 200);
+});
+
+test('colour value has frame 1, frame 2 and lens', async () => {
+  const { admin } = setup();
+  const [t] = (await admin('GET', '/api/tenants')).json();
+  const full = (await admin('GET', `/api/tenants/${t.id}/full`)).json();
+  const farbe = full.categories[0].options.find((o) => o.is_color);
+  let r = await admin('POST', `/api/options/${farbe.id}/values`, { code: 'GLD', labels: { de: 'Schwarz/Gold' }, hex: '#111111', hex2: '#C9A227', hex3: '#6b4f2a' });
+  assert.equal(r.status, 201);
+  assert.equal(r.json().hex3, '#6B4F2A');
+  r = await admin('PATCH', `/api/values/${r.json().id}`, { hex3: null });
+  assert.equal(r.json().hex3, null);
+  assert.ok(farbe.values.every((v) => v.hex3));
+  r = await admin('GET', `/api/tenants/${t.id}/catalog.pdf?inactive=1`);
   assert.equal(r.status, 200);
 });

@@ -48,7 +48,12 @@ export function money(v, cur) {
   return `${new Intl.NumberFormat(loc, { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(v)}${cur ? ' ' + cur : ''}`;
 }
 export const fmtNum = (v) => (v == null ? '' : String(v).replace('.', ui.lang === 'en' ? '.' : ','));
-export const imgUrl = (id, thumb = false) => (id ? `/api/images/${id}${thumb ? '?size=t' : ''}` : null);
+// Bild-ID → kurzer Schlüssel; die URL ändert sich mit jedem neuen Bild, der Browser-Cache passt immer
+let imgKeys = new Map();
+export const imgUrl = (id, thumb = false) => {
+  const k = id && imgKeys.get(id);
+  return k ? `/api/img/${k}${thumb ? '?size=t' : ''}` : null;
+};
 
 export function setPref(key, value) {
   ui[key] = value;
@@ -209,7 +214,9 @@ export async function openTenant(id) {
 }
 export async function refresh() {
   if (!ui.tenantId) return;
-  ui.data = await api.get(`/tenants/${ui.tenantId}/full`);
+  const d = await api.get(`/tenants/${ui.tenantId}/full`);
+  imgKeys = new Map(d.products.flatMap((p) => p.images.map((i) => [i.id, i.key])));
+  ui.data = d;
   applyBranding();
 }
 function connect(id) {

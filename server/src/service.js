@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { formatBase, renderSku, validSku, normCode, KEY_RE, RESERVED } from '../../shared/sku.js';
 
 export class HttpError extends Error {
@@ -65,6 +66,15 @@ function withLogo(t) {
   const { logo_mime, logo_dark_mime, logo_v, ...rest } = t;
   const url = (v) => `/api/tenants/${t.id}/logo/${v}?v=${logo_v}`;
   return { ...rest, logo: logo_mime ? url('light') : null, logo_dark: logo_dark_mime ? url('dark') : null };
+}
+
+const KEY_ABC = 'abcdefghijkmnpqrstuvwxyz23456789'; // ohne l, o, 0, 1
+/** kurze zufällige ID, z. B. "efbas4sk" */
+export function shortKey(n = 8) {
+  const b = randomBytes(n);
+  let k = '';
+  for (let i = 0; i < n; i++) k += KEY_ABC[b[i] % KEY_ABC.length];
+  return k;
 }
 
 export class Service {
@@ -215,7 +225,7 @@ export class Service {
     const products = this.all('SELECT * FROM product WHERE tenant_id = ? ORDER BY sort, base_no', tenantId);
     const variants = this.all('SELECT * FROM variant WHERE tenant_id = ? ORDER BY sort, id', tenantId);
     const vv = this.all('SELECT vv.* FROM variant_value vv JOIN variant v ON v.id = vv.variant_id WHERE v.tenant_id = ?', tenantId);
-    const images = this.all('SELECT id, product_id, variant_id, file, width, height, source_url, sort FROM image WHERE tenant_id = ? ORDER BY sort, id', tenantId);
+    const images = this.all('SELECT id, key, product_id, variant_id, file, width, height, source_url, sort FROM image WHERE tenant_id = ? ORDER BY sort, id', tenantId);
     const tiers = this.all('SELECT t.* FROM price_tier t JOIN product p ON p.id = t.product_id WHERE p.tenant_id = ? ORDER BY qty_from', tenantId);
     const sur = this.all('SELECT s.* FROM surcharge s JOIN product p ON p.id = s.product_id WHERE p.tenant_id = ? ORDER BY s.id', tenantId);
     const vvBy = new Map();
@@ -344,8 +354,8 @@ export class Service {
     const code = normCode(b.code).slice(0, 12);
     if (this.get('SELECT 1 FROM opt_value WHERE opt_id = ? AND code = ?', optId, code)) throw new HttpError(409, 'exists', `Code „${code || '(leer)'}“ existiert schon`);
     const sort = this.get('SELECT COALESCE(MAX(sort), 0) + 1 n FROM opt_value WHERE opt_id = ?', optId).n;
-    const r = this.run('INSERT INTO opt_value (opt_id, code, labels, hex, hex2, ek_delta, sort) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      optId, code, labels(b.labels) ?? '{}', hex(b.hex) ?? null, hex(b.hex2) ?? null, num(b.ek_delta) ?? 0, sort);
+    const r = this.run('INSERT INTO opt_value (opt_id, code, labels, hex, hex2, hex3, ek_delta, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      optId, code, labels(b.labels) ?? '{}', hex(b.hex) ?? null, hex(b.hex2) ?? null, hex(b.hex3) ?? null, num(b.ek_delta) ?? 0, sort);
     this.emit(o.tenant_id, 'option', by);
     return { ...this.value(Number(r.lastInsertRowid)) };
   }
@@ -356,7 +366,7 @@ export class Service {
       code = normCode(b.code).slice(0, 12);
       if (code !== v.code && this.get('SELECT 1 FROM opt_value WHERE opt_id = ? AND code = ?', v.opt_id, code)) throw new HttpError(409, 'exists', 'Code existiert schon');
     }
-    this.patch('opt_value', id, { code, labels: labels(b.labels), hex: hex(b.hex), hex2: hex(b.hex2), ek_delta: num(b.ek_delta) ?? undefined, sort: int(b.sort) });
+    this.patch('opt_value', id, { code, labels: labels(b.labels), hex: hex(b.hex), hex2: hex(b.hex2), hex3: hex(b.hex3), ek_delta: num(b.ek_delta) ?? undefined, sort: int(b.sort) });
     this.emit(v.tenant_id, 'option', by);
     return this.value(id);
   }
@@ -647,6 +657,11 @@ export class Service {
   }
 
   // ---------- Bilder (Dateien schreibt images.js) ----------
+  imageByKey(key) {
+    const i = /^[a-z0-9]{6,16}$/.test(String(key)) ? this.get('SELECT * FROM image WHERE key = ?', key) : null;
+    if (!i) throw new HttpError(404, 'not_found', 'Bild nicht gefunden');
+    return i;
+  }
   image(id) {
     const i = this.get('SELECT * FROM image WHERE id = ?', id);
     if (!i) throw new HttpError(404, 'not_found', 'Bild nicht gefunden');
@@ -656,8 +671,10 @@ export class Service {
     const p = this.product(productId);
     if (variantId && this.variant(variantId).product_id !== productId) throw new HttpError(400, 'invalid', 'Variante gehört nicht zum Produkt');
     const sort = this.get('SELECT COALESCE(MAX(sort), 0) + 1 n FROM image WHERE product_id = ?', productId).n;
-    const r = this.run('INSERT INTO image (tenant_id, product_id, variant_id, file, width, height, source_url, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      p.tenant_id, productId, variantId || null, meta.file, meta.width ?? null, meta.height ?? null, meta.source_url ?? null, sort);
+    let key;
+    do { key = shortKey(); } while (this.get('SELECT 1 FROM image WHERE key = ?', key));
+    const r = this.run('INSERT INTO image (key, tenant_id, product_id, variant_id, file, width, height, source_url, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      key, p.tenant_id, productId, variantId || null, meta.file, meta.width ?? null, meta.height ?? null, meta.source_url ?? null, sort);
     const id = Number(r.lastInsertRowid);
     if (!p.cover_image_id && !variantId) this.run('UPDATE product SET cover_image_id = ? WHERE id = ?', id, productId);
     this.emit(p.tenant_id, 'image', by);

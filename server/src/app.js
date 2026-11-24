@@ -60,6 +60,7 @@ export function buildApp(opts) {
     if (u.startsWith('/api/values/:id')) return svc.get('SELECT c.tenant_id FROM opt_value v JOIN opt o ON o.id = v.opt_id JOIN category c ON c.id = o.category_id WHERE v.id = ?', n(p.id))?.tenant_id;
     if (u.startsWith('/api/products/:id')) return svc.get('SELECT tenant_id FROM product WHERE id = ?', n(p.id))?.tenant_id;
     if (u.startsWith('/api/variants/:id')) return svc.get('SELECT tenant_id FROM variant WHERE id = ?', n(p.id))?.tenant_id;
+    if (u.startsWith('/api/img/:key')) return svc.get('SELECT tenant_id FROM image WHERE key = ?', String(p.key))?.tenant_id ?? null;
     if (u.startsWith('/api/images/:id')) return svc.get('SELECT tenant_id FROM image WHERE id = ?', n(p.id))?.tenant_id;
     return undefined;
   };
@@ -205,8 +206,9 @@ export function buildApp(opts) {
   });
   app.patch('/api/images/:id', async (req) => svc.updateImage(id(req.params.id), body(req), req.user));
   app.delete('/api/images/:id', async (req, reply) => { store.remove(svc.deleteImage(id(req.params.id), req.user)); return gone(reply); });
-  app.get('/api/images/:id', async (req, reply) => {
-    const img = svc.image(id(req.params.id));
+  // Auslieferung über kurze, nie wiederverwendete ID → darf unbegrenzt gecacht werden
+  app.get('/api/img/:key', async (req, reply) => {
+    const img = svc.imageByKey(req.params.key);
     const file = store.abs(img.file, req.query?.size === 't');
     if (!fs.existsSync(file)) throw new HttpError(404, 'not_found', 'Datei fehlt');
     return reply.header('Content-Type', 'image/webp').header('X-Content-Type-Options', 'nosniff')

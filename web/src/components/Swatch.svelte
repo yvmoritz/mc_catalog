@@ -1,9 +1,11 @@
 <script>
   import { lab } from '../lib/store.svelte.js';
-  /** value: opt_value {hex, hex2, code, labels}; label: Name + Code daneben zeigen (farbfehlsichtig-sicher) */
+  /** value: opt_value {hex = Gestell 1, hex2 = Gestell 2, hex3 = Glas, code, labels}; label: Name + Code daneben (farbfehlsichtig-sicher) */
   let { value, size = 18, label = false, selected = false, onclick = null, chip = false } = $props();
   const name = $derived(value ? lab(value.labels, value.code) : '');
-  const bg = $derived(value?.hex ? (value.hex2 ? `linear-gradient(90deg, ${value.hex} 50%, ${value.hex2} 50%)` : value.hex) : 'transparent');
+  // oben Gestell (1 | 2 diagonal), unten Glas, getrennt durch eine helle Linie
+  const frame = $derived(value?.hex ? (value.hex2 ? `linear-gradient(120deg, ${value.hex} 52%, ${value.hex2} 52%)` : `linear-gradient(${value.hex}, ${value.hex})`) : null);
+  const bg = $derived(frame ? (value.hex3 ? `linear-gradient(to bottom, transparent 56%, rgba(255,255,255,.85) 56% 64%, ${value.hex3} 64%), ${frame}` : frame) : 'transparent');
   const tip = $derived(value ? `${name}${value.code ? ' · ' + value.code : ''}` : '');
 </script>
 
@@ -27,6 +29,7 @@
   .dot.chip { border-radius: 5px; background-clip: padding-box; position: relative; }
   .dot.chip::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(160deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 45%); }
   .sel .dot.chip { outline-offset: 2px; border-radius: 5px; }
+  .dot { position: relative; display: inline-flex; align-items: center; justify-content: center; }
   .dot.none { border: 1.5px dashed var(--muted); box-shadow: none; }
   /* Auswahl: Ring + Abstand, nicht nur Farbwechsel */
   .sel .dot { outline: 2.5px solid var(--ink); outline-offset: 2px; }

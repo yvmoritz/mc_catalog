@@ -24,11 +24,12 @@ export function seedIfEmpty(svc, { demo = false } = {}) {
 
   const gl = svc.createCategory(t.id, { name: 'Gafas', sku_pattern: '{basis}.{farbe}{pol}' });
   const farbe = svc.createOpt(gl.id, { key: 'farbe', labels: L('Color', 'Farbe', 'Colour'), is_color: true });
+  // Gestell 1, Gestell 2 (leer = einfarbig), Glas
   const colors = [
-    ['BLU', L('Azul', 'Blau', 'Blue'), '#1F5FAD'], ['GRN', L('Verde', 'Grün', 'Green'), '#3F7A4A'],
-    ['BLK', L('Negro', 'Schwarz', 'Black'), '#111111'], ['BRN', L('Marrón', 'Braun', 'Brown'), '#6B4226'],
+    ['BLU', L('Azul', 'Blau', 'Blue'), '#1F5FAD', null, '#5B6168'], ['GRN', L('Verde', 'Grün', 'Green'), '#3F7A4A', null, '#4F5D4A'],
+    ['BLK', L('Negro', 'Schwarz', 'Black'), '#111111', null, '#3A3D42'], ['BRN', L('Marrón', 'Braun', 'Brown'), '#6B4226', null, '#7A5A3C'],
   ];
-  const cv = Object.fromEntries(colors.map(([code, labels, hex]) => [code, svc.createValue(farbe.id, { code, labels, hex }).id]));
+  const cv = Object.fromEntries(colors.map(([code, labels, hex, hex2, hex3]) => [code, svc.createValue(farbe.id, { code, labels, hex, hex2, hex3 }).id]));
   const pol = svc.createOpt(gl.id, { key: 'pol', labels: L('Polarizado', 'Polarisiert', 'Polarised') });
   const pNo = svc.createValue(pol.id, { code: '', labels: L('Sin polarizar', 'Ohne', 'Standard') }).id;
   const pYes = svc.createValue(pol.id, { code: 'P', labels: L('Polarizado', 'Polarisiert', 'Polarised') }).id;

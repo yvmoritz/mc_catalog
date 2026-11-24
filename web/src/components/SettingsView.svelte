@@ -2,7 +2,7 @@
   import { ui, t, lab, api, mutate, loadTenants, toast, openTenant, go } from '../lib/store.svelte.js';
   import { renderSku, formatBase, tokens } from '$shared/sku.js';
   import { LANGS } from '../lib/i18n.js';
-  import Swatch from './Swatch.svelte';
+  import Glasses from './Glasses.svelte';
 
   const d = $derived(ui.data);
   const tn = $derived(d.tenant);
@@ -156,10 +156,14 @@
                 {#each o.values as v (v.id)}
                   <tr>
                     {#if o.is_color}
-                      <td><span class="cl"><Swatch value={v} size={20} />
-                        <input type="color" aria-label={t('color')} value={v.hex || '#888888'} onchange={(e) => saveV(v, 'hex', e.target.value)}>
-                        <input type="color" aria-label={t('color2')} title={t('color2')} class:off={!v.hex2} value={v.hex2 || '#ffffff'} onchange={(e) => saveV(v, 'hex2', e.target.value)}>
-                        {#if v.hex2}<button type="button" class="ico sm" aria-label="{t('color2')} {t('delete')}" onclick={() => saveV(v, 'hex2', null)}>×</button>{/if}
+                      <td><span class="cl"><Glasses value={v} width={58} />
+                        {#each [['hex', 'frame1'], ['hex2', 'color2'], ['hex3', 'color3']] as [f, k] (f)}
+                          <label class="cp" class:off={!v[f]}>
+                            <input type="color" value={v[f] || (f === 'hex2' ? '#ffffff' : '#888888')} aria-label="{lab(v.labels, v.code)} {t(k)}" onchange={(e) => saveV(v, f, e.target.value)}>
+                            <span>{t(k)}</span>
+                            {#if v[f] && f !== 'hex'}<button type="button" class="xs-x" aria-label="{t(k)} {t('delete')}" onclick={(e) => { e.preventDefault(); saveV(v, f, null); }}>×</button>{/if}
+                          </label>
+                        {/each}
                       </span></td>
                     {/if}
                     <td><input class="cell mono" style="width:80px" value={v.code} aria-label={t('code')} onchange={(e) => saveV(v, 'code', e.target.value)}></td>
@@ -225,5 +229,10 @@
   .lab { display: inline-flex; align-items: center; gap: 4px; }
   .lab .cell { width: 110px; }
   .chk { display: inline-flex; align-items: center; gap: 6px; }
-  .cl { display: inline-flex; align-items: center; gap: 6px; }
+  .cl { display: inline-flex; align-items: center; gap: 10px; }
+  .cp { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; font-size: 10px; font-weight: 500; color: var(--muted); position: relative; }
+  /* leer: gestricheltes Feld mit +, statt Weiß vorzutäuschen */
+  .cp.off input { opacity: 0; }
+  .cp.off::before { content: '+'; position: absolute; top: 2px; left: 50%; transform: translateX(-50%); width: 26px; height: 26px; box-sizing: border-box; border: 1.5px dashed var(--edge); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: var(--muted); pointer-events: none; }
+  .xs-x { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; border: 0; background: var(--ink); color: var(--surface); font-size: 11px; line-height: 1; padding: 0; }
 </style>

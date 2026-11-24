@@ -2,6 +2,7 @@
   import { ui, t, plural, lab, api, mutate, money, go, imgUrl, uploadImage, setUndo, toast, catOf, colorOpt, valueById, currencyOf } from '../lib/store.svelte.js';
   import { droppable } from '../lib/dnd.js';
   import Swatch from './Swatch.svelte';
+  import Glasses from './Glasses.svelte';
   import Status from './Status.svelte';
   import NewVariant from './NewVariant.svelte';
 
@@ -86,7 +87,7 @@
     {#if mainImg}
       <img src={imgUrl(mainImg)} alt="{p.name} {shownColor ? lab(shownColor.labels, shownColor.code) : ''}" loading="lazy">
     {:else if shownColor?.hex}
-      <span class="ph" style="background:{shownColor.hex2 ? `linear-gradient(90deg, ${shownColor.hex} 50%, ${shownColor.hex2} 50%)` : shownColor.hex}" aria-hidden="true"></span>
+      <span class="ph"><Glasses value={shownColor} width={190} /></span>
     {:else}
       <svg class="ghost" width="150" height="60" viewBox="0 0 200 80" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" aria-hidden="true"><path d="M14 22 Q14 14 22 14 H78 Q88 14 88 24 V36 Q88 62 58 62 H44 Q14 62 14 36 Z M112 24 Q112 14 122 14 H178 Q186 14 186 22 V36 Q186 62 156 62 H142 Q112 62 112 36 Z M88 26 Q100 18 112 26"></path></svg>
     {/if}
@@ -116,7 +117,7 @@
           {@const c = co ? valueById(cat, v.values[co.id]) : null}
           <div class="th" role="listitem" class:on={shown?.id === v.id} class:off={v.status === 'inactive'} use:droppable={{ enabled: () => editing, onDrop: (s) => dropOnVariant(s, v) }}>
             <button type="button" class="thb" aria-pressed={shown?.id === v.id} title={v.sku} onclick={() => showVariant(v)}>
-              <span class="tpl">{#if v.image_id}<img src={imgUrl(v.image_id, true)} alt="">{:else}<Swatch value={c} size={16} chip />{/if}</span>
+              <span class="tpl">{#if v.image_id}<img src={imgUrl(v.image_id, true)} alt="">{:else}<Glasses value={c} width={52} />{/if}</span>
               <span class="tsku">{shortSku(v)}</span>
             </button>
             <button type="button" class="x" aria-label="{t('delete')} {v.sku}" onclick={() => delVariant(v)}>×</button>
@@ -162,7 +163,8 @@
   .mc:not(.ed):hover .img img { transform: scale(1.035); }
   .hit { position: absolute; inset: 0; z-index: 2; }
   .hit:focus-visible { outline-offset: -4px; }
-  .ph { width: 34%; aspect-ratio: 1; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); position: relative; z-index: 1; }
+  .ph { position: relative; z-index: 1; display: flex; width: 62%; }
+  .ph :global(svg) { width: 100%; height: auto; }
   .ghost { color: var(--plinth-line); position: relative; z-index: 1; }
   /* Plakette auf dem Stein: immer helle Farbwerte, auch nachts */
   .badge { position: absolute; top: 10px; left: 10px; z-index: 3; display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.85);

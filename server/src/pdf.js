@@ -59,17 +59,32 @@ export async function catalogPdf(data, store, opts = {}) {
   };
   const imgFile = (p, id) => p.images.find((i) => i.id === id)?.file;
 
-  /** Farbpunkt: Kreis, bei hex2 halb/halb; immer mit Rand, damit Weiß/Hell sichtbar bleibt */
+  /** Farbplättchen: Gestell 1 | Gestell 2, Glas als Linse in der Mitte; immer mit Rand, damit Helles sichtbar bleibt */
   const swatch = (x, y, r, v) => {
+    const w = r * 3, h = r * 2, x0 = x - r, y0 = y - r;
     if (!v?.hex) {
-      doc.save().circle(x, y, r).lineWidth(0.8).dash(1.5, { space: 1.5 }).strokeColor(muted).stroke().undash().restore();
+      doc.save().roundedRect(x0, y0, w, h, 2).lineWidth(0.8).dash(1.5, { space: 1.5 }).strokeColor(muted).stroke().undash().restore();
       return;
     }
-    doc.save().circle(x, y, r).fillColor(v.hex).fill();
-    if (v.hex2) {
-      doc.save().rect(x, y - r, r, 2 * r).clip().circle(x, y, r).fillColor(v.hex2).fill().restore();
+    doc.save().roundedRect(x0, y0, w, h, 2).clip();
+    doc.rect(x0, y0, w, h).fillColor(v.hex).fill();
+    if (v.hex2) doc.polygon([x0 + w, y0], [x0 + w, y0 + h], [x0 + w * 0.35, y0 + h]).fillColor(v.hex2).fill();
+    doc.restore();
+    if (v.hex3) doc.save().roundedRect(x0 + w * 0.3, y0 + h * 0.28, w * 0.4, h * 0.44, h * 0.2).fillColor(v.hex3).fill().lineWidth(0.5).strokeColor('#FFFFFF').stroke().restore();
+    doc.save().roundedRect(x0, y0, w, h, 2).lineWidth(0.6).strokeColor('#00000040').stroke().restore();
+  };
+  /** Brillen-Platzhalter ohne Foto: Gläser in Glasfarbe, Rahmen Gestell 1, Brauenlinie Gestell 2 */
+  const glasses = (x, y, w, h, v) => {
+    const lw = w * 0.36, lh = Math.min(h * 0.55, lw * 0.75), gy = y + (h - lh) / 2, gap = w * 0.1, lx = x + (w - 2 * lw - gap) / 2;
+    const t = Math.max(1.5, lw * 0.07);
+    doc.save();
+    for (const gx of [lx, lx + lw + gap]) {
+      doc.roundedRect(gx, gy, lw, lh, lh * 0.35).fillOpacity(0.85).fillColor(v.hex3 || '#D9DDE0').fill();
+      doc.fillOpacity(1).roundedRect(gx, gy, lw, lh, lh * 0.35).lineWidth(t).strokeColor(v.hex || '#888888').stroke();
     }
-    doc.circle(x, y, r).lineWidth(0.6).strokeColor('#00000040').stroke().restore();
+    doc.moveTo(lx + lw, gy + lh * 0.3).quadraticCurveTo(lx + lw + gap / 2, gy + lh * 0.05, lx + lw + gap, gy + lh * 0.3).lineWidth(t).strokeColor(v.hex || '#888888').stroke();
+    if (v.hex2) doc.moveTo(lx + lh * 0.2, gy).lineTo(lx + 2 * lw + gap - lh * 0.2, gy).lineWidth(t * 0.9).strokeColor(v.hex2).stroke();
+    doc.restore();
   };
 
   // Logo als PNG (SVG über sharp gerastert); opts.logo = { data, mime }, für dunklen Grund
@@ -144,10 +159,10 @@ export async function catalogPdf(data, store, opts = {}) {
           const v = valById.get(id);
           const label = `${lab(v.labels, lang, v.code)} · ${v.code || '—'}`;
           doc.font('r').fontSize(9);
-          const w = 22 + doc.widthOfString(label) + 14;
+          const w = 26 + doc.widthOfString(label) + 14;
           if (x + w > W - M) { x = M; y += 20; }
           swatch(x + 7, y + 6, 6, v);
-          doc.fillColor(ink).text(label, x + 18, y + 1, { lineBreak: false });
+          doc.fillColor(ink).text(label, x + 22, y + 1, { lineBreak: false });
           x += w;
         }
         y += 24;
@@ -171,9 +186,8 @@ export async function catalogPdf(data, store, opts = {}) {
         const b = await jpg(vf, 600);
         if (b) doc.image(b, x + 6, y + 6, { fit: [cw - 12, imgH - 6], align: 'center', valign: 'center' });
       } else if (cval?.hex) {
-        doc.save().roundedRect(x + 6, y + 6, cw - 12, imgH - 6, 6).fillColor(cval.hex).fill();
-        if (cval.hex2) doc.roundedRect(x + cw / 2, y + 6, cw / 2 - 6, imgH - 6, 6).fillColor(cval.hex2).fill();
-        doc.restore();
+        doc.save().roundedRect(x + 6, y + 6, cw - 12, imgH - 6, 6).fillColor('#F2F0EE').fill().restore();
+        glasses(x + 10, y + 8, cw - 20, imgH - 10, cval);
       } else {
         doc.save().roundedRect(x + 6, y + 6, cw - 12, imgH - 6, 6).fillColor('#F7F6F6').fill().restore();
         doc.fillColor(muted).font('r').fontSize(8).text(t.noImg, x, y + imgH / 2 - 4, { width: cw, align: 'center' });
@@ -181,7 +195,7 @@ export async function catalogPdf(data, store, opts = {}) {
       let ty = y + imgH + 8;
       doc.fillColor(ink).font('b').fontSize(10).text(v.sku, x + 10, ty, { width: cw - 20, lineBreak: false });
       ty += 14;
-      if (cval) { swatch(x + 15, ty + 5, 5, cval); }
+      if (cval) { swatch(x + 15, ty + 5, 4, cval); }
       const parts = Object.values(v.values).map((id) => valById.get(id)).filter(Boolean)
         .sort((a, b) => a.opt.sort - b.opt.sort)
         .map((val) => (val.opt.is_color ? `${lab(val.labels, lang, val.code)} (${val.code})` : (val.code ? lab(val.labels, lang, val.code) : null)))

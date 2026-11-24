@@ -11,7 +11,7 @@ Ziel-URL: `catalog.apps.cincovest.com`
 | Mandanten | Eigener Name, Kürzel, Haupt- und Zweitfarbe, Währung, Nummernkreis. Admins sehen alle Mandanten und vergeben den Zugriff |
 | Lieferanten | Name, Kürzel (Token `{lieferant}`), Kontakt, Währung, Incoterm, Lieferzeit, MOQ/Konditionen, Status aktiv/Favorit/K.O. |
 | Kategorien | Je Kategorie ein SKU-Muster und Optionen (z. B. Farbe, Polarisiert, Größe) |
-| Optionen | Token (`{farbe}`), Name ES/DE/EN, „ist Farbe“. Werte mit Code, Name ES/DE/EN, Farbe + Zweitfarbe (Muster wie Havanna), EK-Aufpreis. Leerer Code erlaubt (z. B. „ohne Polarisation“) |
+| Optionen | Token (`{farbe}`), Name ES/DE/EN, „ist Farbe“. Werte mit Code, Name ES/DE/EN, drei Farben (Gestell 1, Gestell 2 optional, Glas), EK-Aufpreis. Leerer Code erlaubt (z. B. „ohne Polarisation“) |
 | Produkte (Modelle) | Basis-Nr. aus Nummernkreis (`X123`), Lieferant, Lief.-Modell-Nr., Material, EK, Währung, MOQ je Einheit, Lieferzeit, Incoterm, Status, Notizen, Preisstaffel, Zuschläge |
 | Varianten | Kombination der Optionswerte. Interne SKU aus Muster, z. B. `{basis}.{farbe}{pol}` → `X123.BLU`, `X123.BLUP`. Manuell überschreibbar (Marke „manuell“). Lief.-SKU, EK (leer = Produkt-EK + Aufpreise), MOQ, aktiv/inaktiv |
 | Varianten erzeugen | Werte markieren → alle fehlenden Kombinationen. Doppelte Kombinationen und SKUs werden übersprungen |
@@ -19,7 +19,7 @@ Ziel-URL: `catalog.apps.cincovest.com`
 | Ansicht Liste | Tabelle mit Suche (Modell, SKU, Lief.-Nr.), Filter Lieferant / Kategorie / Status |
 | Ansicht Visuell | Produktbilder, gruppiert nach Lieferant. Farbpunkt wählt die Variante, Bild wechselt mit |
 | Visuell · Bearbeiten | Schalter „Bearbeiten“. Bild ablegen auf: Hauptbild = Bild der gezeigten Variante · Varianten-Kachel = Bild dieser Variante · „+ Ablegen“ = neue Variante (Farbe wählen oder neu anlegen, SKU-Vorschau live) · „Neues Modell“ = Modell mit nächster Basis-Nr. Quelle: Datei, Bild aus anderem Browserfenster (URL), Link auf Produktseite (og:image), ⌘V. Letzte Aktion rückgängig |
-| Bilder | Werden auf max. 1600 px als WebP gespeichert, plus 480-px-Thumbnail. Zuordnung Produkt/Variante, Hauptbild wählbar |
+| Bilder | Werden auf max. 1600 px als WebP gespeichert, plus 480-px-Thumbnail. Auslieferung unter einer kurzen Zufalls-ID (`/api/img/efbas4sk`), die nie wiederverwendet wird; daher dauerhaft cachebar. Zuordnung Produkt/Variante, Hauptbild wählbar |
 | PDF | Visueller Katalog: Deckblatt, je Modell eine Seite mit Hauptbild, Farbleiste (alle Farben mit Name + Code) und Raster aller Varianten (Bild oder Farbfläche, SKU, Optionen, EK, MOQ). ES/DE/EN, Filter Lieferant/Kategorie, optional inaktive |
 | CSV | Alle Varianten mit Optionen und Codes, Semikolon, UTF-8 (Excel) |
 | Live | Änderungen erscheinen per Server-Sent Events sofort in allen offenen Browsern |
