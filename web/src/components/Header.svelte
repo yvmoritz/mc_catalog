@@ -8,7 +8,7 @@
   const page = $derived(ui.route.page);
   const onProducts = $derived(page === 'products');
   const toggle = (k) => (open = open === k ? null : k);
-  function onDocClick(e) { if (open && !e.target.closest('.pop')) open = null; }
+  function onDocClick(e) { if (open && !e.composedPath().some((el) => el.classList?.contains('pop'))) open = null; }
   function onKey(e) {
     if (e.key === 'Escape' && open) { open = null; e.stopPropagation(); return; }
     // Kürzel: e = Bearbeiten, v = Liste/Visuell, n = neues Produkt
@@ -63,7 +63,7 @@
     {/if}
   </div>
 
-  <nav class="pillset" aria-label={t('app')}>
+  <nav class="pillset dsk" aria-label={t('app')}>
     {#each nav as [k, label] (k)}
       <a class="pz" class:on={page === k || (k === 'products' && page === 'product')} href="#/{k}" aria-current={page === k ? 'page' : undefined}>{label}</a>
     {/each}
@@ -72,26 +72,26 @@
   <div class="sp"></div>
 
   {#if onProducts}
-    <div class="pillset vt" role="group" aria-label={t('visual')}>
+    <div class="pillset vt dsk" role="group" aria-label={t('visual')}>
       <button type="button" class="pz" class:on={ui.view === 'list'} aria-pressed={ui.view === 'list'} onclick={() => setPref('view', 'list')}>{t('list')}</button>
       <button type="button" class="pz" class:on={ui.view === 'visual'} aria-pressed={ui.view === 'visual'} onclick={() => setPref('view', 'visual')}>{t('visual')}</button>
     </div>
     {#if ui.view === 'visual'}
-      <button type="button" role="switch" aria-checked={ui.edit} class="sw edsw" class:on={ui.edit} title="{t('edit')} (E)" onclick={() => (ui.edit = !ui.edit)}>
+      <button type="button" role="switch" aria-checked={ui.edit} class="sw edsw dsk" class:on={ui.edit} title="{t('edit')} (E)" onclick={() => (ui.edit = !ui.edit)}>
         <span class="tr"><span class="kn"></span></span>{t('edit')}
       </button>
     {/if}
-    <button type="button" class="btn pdfb" title={t('pdf')} onclick={() => (ui.dialog = { type: 'pdf' })}>
+    <button type="button" class="btn pdfb dsk" title={t('pdf')} onclick={() => (ui.dialog = { type: 'pdf' })}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6M12 12v6M9 15l3 3 3-3"></path></svg>
       <span class="lbl">{t('pdf')}</span>
     </button>
-    <button type="button" class="btn primary newb" title="{t('newProduct')} (N)" onclick={newProduct}>
+    <button type="button" class="btn primary newb dsk" title="{t('newProduct')} (N)" onclick={newProduct}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
       <span class="lbl">{t('newProduct')}</span>
     </button>
   {/if}
 
-  <div class="pop">
+  <div class="pop dsk">
     <button type="button" class="ico" aria-label={t('settings')} title={t('settings')} aria-haspopup="menu" aria-expanded={open === 'menu'} onclick={() => toggle('menu')}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
     </button>
@@ -112,6 +112,51 @@
       </div>
     {/if}
   </div>
+  <div class="pop mob">
+    <button type="button" class="ico burger" aria-label="Menu" aria-haspopup="true" aria-expanded={open === 'burger'} onclick={() => toggle('burger')}>
+      {#if open === 'burger'}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      {:else}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+      {/if}
+    </button>
+  </div>
+  {#if open === 'burger'}
+    <div class="drawer pop" role="dialog" aria-label="Menu">
+      <nav class="dnav" aria-label={t('app')}>
+        {#each nav as [k, label] (k)}
+          <a href="#/{k}" class:on={page === k || (k === 'products' && page === 'product')} aria-current={page === k ? 'page' : undefined} onclick={() => (open = null)}>{label}</a>
+        {/each}
+      </nav>
+      {#if onProducts}
+        <div class="drow">
+          <div class="pillset grow" role="group" aria-label={t('visual')}>
+            <button type="button" class="pz" class:on={ui.view === 'list'} aria-pressed={ui.view === 'list'} onclick={() => setPref('view', 'list')}>{t('list')}</button>
+            <button type="button" class="pz" class:on={ui.view === 'visual'} aria-pressed={ui.view === 'visual'} onclick={() => setPref('view', 'visual')}>{t('visual')}</button>
+          </div>
+          <button type="button" role="switch" aria-checked={ui.edit} class="sw" class:on={ui.edit} onclick={() => { if (ui.view !== 'visual') setPref('view', 'visual'); ui.edit = !ui.edit; open = null; }}>
+            <span class="tr"><span class="kn"></span></span>{t('edit')}
+          </button>
+        </div>
+        <div class="drow">
+          <button type="button" class="btn grow" onclick={() => { open = null; ui.dialog = { type: 'pdf' }; }}>{t('pdf')}</button>
+          <button type="button" class="btn primary grow" onclick={() => { open = null; newProduct(); }}>{t('newProduct')}</button>
+        </div>
+      {/if}
+      <div class="drow">
+        <div class="pillset" role="group" aria-label={t('lang')}>
+          {#each LANGS as l (l)}
+            <button type="button" class="pz" class:on={ui.lang === l} aria-pressed={ui.lang === l} onclick={() => setPref('lang', l)}>{l.toUpperCase()}</button>
+          {/each}
+        </div>
+        <div class="pillset grow" role="group" aria-label={t('theme')}>
+          <button type="button" class="pz" class:on={ui.theme !== 'dark'} aria-pressed={ui.theme !== 'dark'} onclick={() => setPref('theme', 'light')}>{t('day')}</button>
+          <button type="button" class="pz" class:on={ui.theme === 'dark'} aria-pressed={ui.theme === 'dark'} onclick={() => setPref('theme', 'dark')}>{t('night')}</button>
+        </div>
+      </div>
+      {#if ui.me}<span class="cap">{t('signedIn')}: {ui.me}{ui.isAdmin ? `, ${t('admin')}` : ''}</span>{/if}
+    </div>
+  {/if}
 </header>
 
 <style>
@@ -149,18 +194,24 @@
   .sw.on { background: var(--brand); color: var(--on-brand); font-weight: 600; }
   .sw.on .tr { background: var(--sand); }
   .sw.on .kn { left: 19px; background: var(--brand); }
+  .mob, .drawer { display: none; }
   @media (max-width: 760px) {
-    header { gap: 8px; }
-    .lbl { display: none; }
-    .btn { padding: 0 14px; }
-    .pop:first-child { order: 1; margin-right: auto; }
-    .sp { display: none; }
-    .pdfb { order: 3; } .newb { order: 4; } .pop:last-child { order: 5; }
-    nav { order: 10; flex: 1 1 auto; }
-    nav .pz { flex: 1; justify-content: center; padding: 0 10px; }
-    .vt { order: 11; }
-    .edsw { order: 12; }
-    .edsw, .vt .pz { font-size: 13px; }
+    .dsk { display: none !important; }
+    .mob { display: block; margin-left: auto; }
+    header { flex-wrap: nowrap; padding-top: calc(6px + env(safe-area-inset-top)); padding-bottom: 6px; }
+    .limg { height: 34px; }
+    .drawer {
+      display: flex; flex-direction: column; gap: 14px; position: absolute; left: 0; right: 0; top: 100%;
+      padding: 12px 16px 18px; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: 0 18px 40px var(--shadow);
+    }
+    .dnav { display: flex; flex-direction: column; }
+    .dnav a { display: flex; align-items: center; height: 48px; padding: 0 12px; border-radius: 12px; color: var(--ink); text-decoration: none; font-size: 17px; font-weight: 500; }
+    .dnav a.on { background: var(--pill); font-weight: 600; }
+    .dnav a.on::before { content: ''; width: 4px; height: 18px; border-radius: 2px; background: var(--brand); margin-right: 10px; }
+    .drow { display: flex; gap: 10px; align-items: center; }
+    .grow { flex: 1; }
+    .drow .btn { justify-content: center; }
+    .grow .pz { flex: 1; justify-content: center; }
+    .drow .pz { display: inline-flex; align-items: center; }
   }
-  @media (max-width: 480px) { nav { flex-basis: 100%; } .vt { flex: 1; } .vt .pz { flex: 1; justify-content: center; } .edsw { padding: 0 12px 0 6px; } }
 </style>
