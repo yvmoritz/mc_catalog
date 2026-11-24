@@ -136,17 +136,48 @@ export async function catalogPdf(data, store, opts = {}) {
     doc.moveTo(M, y).lineTo(W - M, y).lineWidth(0.6).strokeColor(line).stroke();
     y += 12;
 
-    // Hauptbild
+    // Hauptbild groß, alle weiteren Bilder klein daneben (rechts 2 Spalten, Überlauf als Reihe darunter).
+    // Bilder, die schon als Variantenbild im Raster stehen, nicht doppelt.
     const coverFile = imgFile(p, p.cover);
+    const inGrid = new Set(vars.map((v) => v.image_id).filter(Boolean));
+    const skuOf = new Map(p.variants.map((v) => [v.id, v.sku]));
+    const extras = p.images.filter((i) => i.id !== p.cover && !inGrid.has(i.id));
     const coverH = vars.length > 8 ? 170 : 210;
-    doc.save().roundedRect(M, y, CW, coverH, 10).fillColor('#F7F6F6').fill().restore();
+    const gapT = 8;
+    const coverW = extras.length ? Math.round(CW * 0.66) : CW;
+    const tCols = 2, tW = (CW - coverW - 12 - gapT) / tCols, tH = tW * 0.75 + 11;
+    const side = extras.length ? Math.max(1, Math.floor((coverH + gapT) / (tH + gapT))) * tCols : 0;
+    const thumb = async (im, tx, ty, w, h) => {
+      doc.save().roundedRect(tx, ty, w, h - 11, 6).fillColor('#F7F6F6').fill().restore();
+      const b = await jpg(im.file, 500);
+      if (b) doc.image(b, tx + 4, ty + 4, { fit: [w - 8, h - 19], align: 'center', valign: 'center' });
+      const lbl = im.variant_id ? skuOf.get(im.variant_id) : '';
+      if (lbl) doc.fillColor(muted).font('m').fontSize(7).text(lbl, tx, ty + h - 9, { width: w, align: 'center', lineBreak: false });
+    };
+    doc.save().roundedRect(M, y, coverW, coverH, 10).fillColor('#F7F6F6').fill().restore();
     if (coverFile) {
       const b = await jpg(coverFile, 1400);
-      if (b) doc.image(b, M + 10, y + 10, { fit: [CW - 20, coverH - 20], align: 'center', valign: 'center' });
+      if (b) doc.image(b, M + 10, y + 10, { fit: [coverW - 20, coverH - 20], align: 'center', valign: 'center' });
     } else {
-      doc.fillColor(muted).font('r').fontSize(10).text(t.noImg, M, y + coverH / 2 - 6, { width: CW, align: 'center' });
+      // ohne Foto: gezeichnete Brille in den Farben der ersten Variante
+      const cv0 = colorOpt && vars[0] ? valById.get(vars[0].values[colorOpt.id]) : null;
+      if (cv0?.hex) glasses(M + coverW * 0.2, y + 16, coverW * 0.6, coverH - 32, cv0);
+      else doc.fillColor(muted).font('r').fontSize(10).text(t.noImg, M, y + coverH / 2 - 6, { width: coverW, align: 'center' });
+    }
+    for (let k = 0; k < Math.min(side, extras.length); k++) {
+      await thumb(extras[k], M + coverW + 12 + (k % tCols) * (tW + gapT), y + Math.floor(k / tCols) * (tH + gapT), tW, tH);
     }
     y += coverH + 14;
+    const rest = extras.slice(side);
+    if (rest.length) {
+      const rCols = 6, rW = (CW - gapT * (rCols - 1)) / rCols;
+      for (let k = 0; k < rest.length; k++) {
+        if (k % rCols === 0 && k) y += tH + gapT;
+        if (y + tH > H - 50) { doc.addPage(); y = M; }
+        await thumb(rest[k], M + (k % rCols) * (rW + gapT), y, rW, tH);
+      }
+      y += tH + 14;
+    }
 
     // Farbleiste: alle Farben des Modells mit Name + Code (nie nur Farbe)
     if (colorOpt) {
