@@ -163,7 +163,10 @@ export async function uploadImage(productId, src, variantId = null) {
 const PAGES = ['products', 'product', 'suppliers', 'settings'];
 export function parseRoute() {
   const [, page, id] = (location.hash || '#/products').split('/');
-  ui.route = { page: PAGES.includes(page) ? page : 'products', id: id ? Number(id) : null };
+  const next = PAGES.includes(page) ? page : 'products';
+  const grp = (x) => (x === 'product' ? 'products' : x);
+  if (grp(next) !== grp(ui.route.page)) ui.filter.q = ''; // Suche gilt je Bereich
+  ui.route = { page: next, id: id ? Number(id) : null };
 }
 export function go(page, id = null) {
   const h = `#/${page}${id ? '/' + id : ''}`;

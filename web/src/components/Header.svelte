@@ -9,8 +9,11 @@
   const onProducts = $derived(page === 'products');
   const toggle = (k) => (open = open === k ? null : k);
   function onDocClick(e) { if (open && !e.composedPath().some((el) => el.classList?.contains('pop'))) open = null; }
+  let search = $state();
   function onKey(e) {
     if (e.key === 'Escape' && open) { open = null; e.stopPropagation(); return; }
+    if (e.key === 'Escape' && document.activeElement === search) { ui.filter.q = ''; search.blur(); return; }
+    if (e.key === '/' && (onProducts || page === 'suppliers') && !e.metaKey && !e.ctrlKey && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) { e.preventDefault(); search?.focus(); return; }
     // Kürzel: e = Bearbeiten, v = Liste/Visuell, n = neues Produkt
     if (e.metaKey || e.ctrlKey || e.altKey || ui.dialog || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
     if (!onProducts) return;
@@ -69,7 +72,20 @@
     {/each}
   </nav>
 
-  <div class="sp"></div>
+  {#if onProducts || page === 'suppliers'}
+    <label class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <span class="sr">{t('search')}</span>
+      <input type="search" placeholder={page === 'suppliers' ? t('searchSup') : t('search')} bind:this={search} bind:value={ui.filter.q} enterkeyhint="search">
+      {#if ui.filter.q}
+        <button type="button" class="clr" aria-label="{t('search')}: {t('delete')}" onclick={() => { ui.filter.q = ''; search?.focus(); }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </button>
+      {:else}<span class="kbd" aria-hidden="true">/</span>{/if}
+    </label>
+  {:else}
+    <div class="sp"></div>
+  {/if}
 
   {#if onProducts}
     <div class="pillset vt dsk" role="group" aria-label={t('visual')}>
@@ -165,6 +181,12 @@
     background: var(--surface); border-bottom: 1px solid var(--line); position: relative; z-index: 20;
   }
   .sp { flex: 1 1 0; }
+  .search { flex: 1 1 200px; max-width: 420px; margin: 0 auto; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 12px; border-radius: 999px; background: var(--bg); color: var(--muted); box-shadow: inset 0 0 0 1px transparent; }
+  .search:focus-within { box-shadow: inset 0 0 0 1.5px var(--brand); background: var(--surface); }
+  .search input { border: 0; outline: 0; background: transparent; font-size: 15px; width: 100%; min-width: 0; color: var(--ink); }
+  .search input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+  .clr { width: 28px; height: 28px; margin-right: -6px; border: 0; border-radius: 50%; background: var(--pill); color: var(--ink2); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .clr:hover { background: var(--hover); }
   .pop { position: relative; }
   .tbtn { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 4px 8px 4px 4px; border-radius: 14px; text-align: left; }
   .tbtn:hover { background: var(--pill); }
@@ -199,7 +221,10 @@
     .dsk { display: none !important; }
     .mob { display: block; margin-left: auto; }
     header { flex-wrap: nowrap; padding-top: calc(6px + env(safe-area-inset-top)); padding-bottom: 6px; }
-    .limg { height: 34px; }
+    .limg { height: 30px; max-width: 76px; }
+    .tbtn { padding: 4px 2px; gap: 4px; }
+    .search { margin: 0; max-width: none; height: 40px; font-size: 16px; }
+    .search input { font-size: 16px; }
     .drawer {
       display: flex; flex-direction: column; gap: 14px; position: absolute; left: 0; right: 0; top: 100%;
       padding: 12px 16px 18px; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: 0 18px 40px var(--shadow);

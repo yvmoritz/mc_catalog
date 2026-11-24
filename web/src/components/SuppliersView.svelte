@@ -3,6 +3,10 @@
   import Status from './Status.svelte';
 
   const d = $derived(ui.data);
+  const list = $derived.by(() => {
+    const q = ui.filter.q.trim().toLowerCase();
+    return q ? d.suppliers.filter((s) => [s.name, s.contact, s.code, s.notes, s.moq_note].some((x) => x && x.toLowerCase().includes(q))) : d.suppliers;
+  });
   const count = (s) => d.products.filter((p) => p.supplier_id === s.id).length;
   const save = (s, f, v) => mutate(() => api.patch(`/suppliers/${s.id}`, { [f]: v === '' ? null : v }));
   const add = () => mutate(() => api.post(`/tenants/${ui.tenantId}/suppliers`, { name: t('newSupplier') }));
@@ -17,7 +21,7 @@
     <table class="tbl">
       <thead><tr><th>{t('supplier')}</th><th>{t('supCode')}</th><th>{t('contact')}</th><th>{t('currency')}</th><th>{t('incoterm')}</th><th>{t('leadTime')}</th><th>{t('moqNote')}</th><th>{t('status')}</th><th class="r">{t('products')}</th><th></th></tr></thead>
       <tbody>
-        {#each d.suppliers as s (s.id)}
+        {#each list as s (s.id)}
           <tr class:dim={s.status === 'ko'}>
             <td><input class="cell nm" value={s.name} aria-label={t('supplier')} onchange={(e) => save(s, 'name', e.target.value)}></td>
             <td><input class="cell mono" style="width:64px" value={s.code ?? ''} aria-label={t('supCode')} onchange={(e) => save(s, 'code', e.target.value)}></td>
