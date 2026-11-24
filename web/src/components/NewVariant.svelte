@@ -95,7 +95,7 @@
           <span>{lab(o.labels, o.key)}</span>
           {#if o.is_color}
             <div class="sws">
-              {#each o.values as v (v.id)}<Swatch value={v} size={24} selected={pick[o.id] === v.id} onclick={() => (pick[o.id] = v.id)} />{/each}
+              {#each o.values as v (v.id)}<Swatch value={v} size={18} chip selected={pick[o.id] === v.id} onclick={() => (pick[o.id] = v.id)} />{/each}
               <button type="button" class="newb" class:on={pick[o.id] === 'new'} aria-pressed={pick[o.id] === 'new'} onclick={() => (pick[o.id] = 'new')}>{t('newValue')}</button>
             </div>
           {:else}

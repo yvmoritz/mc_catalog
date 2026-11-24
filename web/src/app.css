@@ -96,11 +96,18 @@ dialog.sheet::backdrop { background: rgba(20, 12, 10, 0.35); }
 /* ---------- Katalog ---------- */
 :root { --ok: #4D231B; --info: #1F5FAD; --on-info: #FFFFFF; --stripe: rgba(77, 35, 27, 0.04); }
 :root.dark { --ok: #EAD3B1; --info: #7FB2F0; --on-info: #0D1B2C; --stripe: rgba(234, 211, 177, 0.04); }
-.mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-feature-settings: normal; }
-.sku { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-weight: 700; font-size: 13px; letter-spacing: 0.01em; }
-.card { background: var(--surface); border-radius: 20px; box-shadow: 0 1px 2px var(--shadow); }
-.box { background: var(--surface); border-radius: 20px; padding: 22px 24px; box-shadow: 0 1px 2px var(--shadow); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.box > h2, .h2 { margin: 0; font-weight: 300; font-size: 24px; }
+.mono { letter-spacing: 0.04em; font-variant-numeric: tabular-nums slashed-zero; }
+/* Vitrine: Produktbilder immer auf hellem Stein, auch nachts; weiße Fotohintergründe verschwinden */
+:root { --plinth: #ECE9E6; --plinth-ink: #4D231B; --plinth-line: #DAD4D0; }
+:root.dark { --plinth: #D9D3CE; --plinth-ink: #4D231B; --plinth-line: #C4BCB6; }
+.plinth { background: var(--plinth); position: relative; overflow: hidden; }
+.plinth img { mix-blend-mode: multiply; }
+.plinth::after { content: ''; position: absolute; left: 12%; right: 12%; bottom: 9%; height: 10px; border-radius: 50%; background: radial-gradient(closest-side, rgba(77, 35, 27, 0.16), transparent); pointer-events: none; }
+.kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 5px; box-shadow: inset 0 0 0 1px var(--edge); font-size: 11px; font-weight: 600; color: var(--muted); }
+.sku { font-weight: 650; font-size: 13px; letter-spacing: 0.045em; font-variant-numeric: tabular-nums slashed-zero; }
+.card { background: var(--surface); border-radius: 20px; box-shadow: 0 0 0 1px var(--line); }
+.box { background: var(--surface); border-radius: 20px; padding: 20px 22px; box-shadow: 0 0 0 1px var(--line); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.box > h2, .h2 { margin: 0; font-weight: 400; font-size: 20px; letter-spacing: -0.005em; }
 .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table.tbl { border-collapse: collapse; width: 100%; }
 .tbl th { font-size: 12px; font-weight: 600; color: var(--muted); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -138,3 +145,4 @@ table.tbl { border-collapse: collapse; width: 100%; }
 
 .toast.error { background: var(--info); color: var(--on-info); }
 .scroll { overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+@media (hover: none) { .kbd { display: none; } }

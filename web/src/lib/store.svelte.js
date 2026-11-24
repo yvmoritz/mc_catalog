@@ -37,6 +37,8 @@ export function t(key) {
   const d = DICT[ui.lang] || DICT.es;
   return key.split('.').reduce((o, k) => (o == null ? o : o[k]), d) ?? key;
 }
+/** Anzahl mit Einzahl/Mehrzahl, z. B. plural(1, 'model1', 'models') */
+export const plural = (n, one, many) => `${n} ${t(n === 1 ? one : many)}`;
 /** mehrsprachiges Label {es,de,en} → aktuelle Sprache mit Rückfall */
 export const lab = (l, fb = '') => l?.[ui.lang] || l?.es || l?.de || l?.en || fb;
 

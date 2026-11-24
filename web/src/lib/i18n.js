@@ -2,7 +2,7 @@ export const LANGS = ['es', 'de', 'en'];
 
 export const DICT = {
   es: {
-    app: 'Catálogo', models: 'modelos', tenant: 'Cliente', products: 'Productos', suppliers: 'Proveedores', settings: 'Ajustes',
+    app: 'Catálogo', from: 'desde', models: 'modelos', model1: 'modelo', nVar: 'variantes', nVar1: 'variante', tenant: 'Cliente', products: 'Productos', suppliers: 'Proveedores', settings: 'Ajustes',
     list: 'Lista', visual: 'Visual', edit: 'Editar', editOn: 'Edición activa',
     editHint: 'Suelta una imagen: archivo, imagen de otra ventana, URL o ⌘V. Los cambios se guardan al instante.',
     newProduct: 'Nuevo producto', newModel: 'Nuevo modelo', newModelHint: 'Arrastra una imagen aquí o haz clic.', nextNo: 'siguiente n.º',
@@ -34,7 +34,7 @@ export const DICT = {
     err: { network: 'Sin conexión con el servidor', exists: 'Ya existe', in_use: 'Está en uso', forbidden: 'Sin permiso', blocked: 'Direcciones internas bloqueadas', fetch_failed: 'No se pudo cargar la imagen. Guárdala y suéltala como archivo.', bad_image: 'No es una imagen compatible', too_large: 'Imagen > 15 MB', no_image: 'La página no tiene imagen. Arrastra la imagen directamente.', bad_url: 'URL no válida', has_variants: 'Solo sin variantes' },
   },
   de: {
-    app: 'Katalog', models: 'Modelle', tenant: 'Mandant', products: 'Produkte', suppliers: 'Lieferanten', settings: 'Einstellungen',
+    app: 'Katalog', from: 'ab', models: 'Modelle', model1: 'Modell', nVar: 'Varianten', nVar1: 'Variante', tenant: 'Mandant', products: 'Produkte', suppliers: 'Lieferanten', settings: 'Einstellungen',
     list: 'Liste', visual: 'Visuell', edit: 'Bearbeiten', editOn: 'Bearbeiten aktiv',
     editHint: 'Bild ablegen: Datei, Bild aus anderem Fenster, URL oder ⌘V. Änderungen werden sofort gespeichert.',
     newProduct: 'Neues Produkt', newModel: 'Neues Modell', newModelHint: 'Bild hierher ziehen oder klicken.', nextNo: 'nächste Nr.',
@@ -65,7 +65,7 @@ export const DICT = {
     err: { network: 'Keine Verbindung zum Server', exists: 'Existiert schon', in_use: 'Wird verwendet', forbidden: 'Keine Berechtigung', blocked: 'Interne Adressen sind gesperrt', fetch_failed: 'Bild nicht ladbar. Speichern und als Datei ablegen.', bad_image: 'Kein unterstütztes Bild', too_large: 'Bild > 15 MB', no_image: 'Seite ohne Bild. Bild direkt ziehen.', bad_url: 'URL ungültig', has_variants: 'Nur ohne Varianten' },
   },
   en: {
-    app: 'Catalogue', models: 'models', tenant: 'Client', products: 'Products', suppliers: 'Suppliers', settings: 'Settings',
+    app: 'Catalogue', from: 'from', models: 'models', model1: 'model', nVar: 'variants', nVar1: 'variant', tenant: 'Client', products: 'Products', suppliers: 'Suppliers', settings: 'Settings',
     list: 'List', visual: 'Visual', edit: 'Edit', editOn: 'Editing on',
     editHint: 'Drop an image: file, image from another window, URL or ⌘V. Changes save instantly.',
     newProduct: 'New product', newModel: 'New model', newModelHint: 'Drag an image here or click.', nextNo: 'next no.',

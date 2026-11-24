@@ -1,8 +1,9 @@
 <script>
-  import { ui, t, api, mutate, uploadImage, setUndo, runUndo, toast, filteredProducts } from '../lib/store.svelte.js';
+  import { ui, t, plural, api, mutate, uploadImage, setUndo, runUndo, toast, filteredProducts } from '../lib/store.svelte.js';
   import { droppable, extractImage } from '../lib/dnd.js';
   import Filters from './Filters.svelte';
   import ModelCard from './ModelCard.svelte';
+  import Status from './Status.svelte';
 
   const groups = $derived.by(() => {
     const d = ui.data;
@@ -65,7 +66,12 @@
 
   {#each groups as g (g.sup.id ?? 'none')}
     <section>
-      <div class="gh"><h2 class="h2">{g.sup.name}</h2><span class="cap">{g.products.length} {t('models')}{g.sup.currency ? ' · ' + g.sup.currency : ''}</span></div>
+      <div class="gh">
+        <h2>{g.sup.name}</h2>
+        <span class="gc">{plural(g.products.length, 'model1', 'models')}</span>
+        {#if g.sup.currency}<span class="chip tg-sup">{g.sup.currency}</span>{/if}
+        {#if g.sup.status === 'favorite'}<Status value="favorite" />{/if}
+      </div>
       <div class="grid">
         {#each g.products as p (p.id)}<ModelCard {p} />{/each}
         {#if ui.edit && g.sup.id !== undefined}
@@ -98,9 +104,11 @@
   .busy::before { content: '⟳ '; }
   .undo { margin-left: auto; }
   .undo button { border: 0; background: none; color: inherit; text-decoration: underline; font-weight: 600; padding: 0; }
-  section { display: flex; flex-direction: column; gap: 14px; }
-  .gh { display: flex; align-items: baseline; gap: 12px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; align-items: start; }
-  .newm { min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; border-radius: 20px; }
+  section { display: flex; flex-direction: column; gap: 16px; }
+  .gh { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .gh h2 { margin: 0; font-weight: 300; font-size: 26px; letter-spacing: -0.005em; }
+  .gc { font-size: 14px; color: var(--muted); margin-right: auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 16px; align-items: start; }
+  .newm { min-height: 280px; align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; border-radius: 20px; }
   .newm .row { justify-content: center; }
 </style>

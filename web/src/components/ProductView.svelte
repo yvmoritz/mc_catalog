@@ -11,6 +11,9 @@
   const cur = $derived(p ? currencyOf(p) : '');
 
   let checked = $state(new Set());
+  let peek = $state(null); // Variante unter dem Zeiger → Vitrine zeigt ihr Bild
+  const pv = $derived(p && peek ? p.variants.find((v) => v.id === peek) : null);
+  const vimg = $derived(pv?.image_id ?? p?.cover);
   let gen = $state({}); // optId -> Set(valueIds)
   let tiers = $state([]);
   let surs = $state([]);
@@ -84,7 +87,7 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
     </a>
     <div class="tt">
-      <span class="cap">{ui.data.tenant.name} · {cat?.name}{sup ? ' · ' + sup.name : ''}</span>
+      <span class="crumbs"><a href="#/products">{t('products')}</a><span aria-hidden="true">›</span>{cat?.name}{#if sup}<span aria-hidden="true">›</span>{sup.name}{/if}</span>
       <h1><span class="sku big">{p.base_no}</span> {p.name}</h1>
     </div>
     <Status value={p.status} />
@@ -95,6 +98,18 @@
 
   <div class="cols">
     <div class="left">
+      <figure class="vit plinth" use:droppable={{ onDrop: (s) => addImg(s, pv?.id ?? null) }}>
+        {#if vimg}<img src={imgUrl(vimg)} alt={p.name}>{:else}<span class="cap">{t('dropAdd')}</span>{/if}
+        <figcaption class="sku">{pv?.sku ?? p.base_no}</figcaption>
+      </figure>
+      {#if co}
+        <div class="rail" aria-label={lab(co.labels, co.key)}>
+          {#each [...new Set(p.variants.map((v) => v.values[co.id]).filter(Boolean))] as cid (cid)}
+            {@const cv = valueById(cat, cid)}
+            <Swatch value={cv} size={14} chip label />
+          {/each}
+        </div>
+      {/if}
       <section class="box">
         <h2>{t('master')}</h2>
         <label class="field"><span>{t('model')}</span><input class="input" value={p.name} onchange={(e) => save('name', e.target.value)}></label>
@@ -175,10 +190,10 @@
             </tr></thead>
             <tbody>
               {#each p.variants as v (v.id)}
-                <tr class:dim={v.status === 'inactive'}>
+                <tr class:dim={v.status === 'inactive'} onmouseenter={() => (peek = v.id)} onmouseleave={() => (peek = null)} onfocusin={() => (peek = v.id)}>
                   <td><input type="checkbox" aria-label={v.sku} checked={checked.has(v.id)} onchange={() => toggleCheck(v.id)}></td>
                   <td class="vth" use:droppable={{ onDrop: (s) => addImg(s, v.id) }}>
-                    {#if v.image_id}<img src={imgUrl(v.image_id, true)} alt="">{:else}<span class="drop mini" title={t('dropAdd')}>+</span>{/if}
+                    <span class="plinth tp" title={t('dropAdd')}>{#if v.image_id}<img src={imgUrl(v.image_id, true)} alt="">{:else}<span aria-hidden="true">+</span>{/if}</span>
                   </td>
                   <td>
                     <span class="skucell">
@@ -227,17 +242,20 @@
           <input type="file" accept="image/*" multiple hidden bind:this={filePick} onchange={onFiles}></div>
         <div class="gal">
           {#each p.images as im (im.id)}
-            <figure class:cover={im.id === p.cover}>
-              <img src={imgUrl(im.id, true)} alt="">
+            <figure class="gi" class:cover={im.id === p.cover}>
+              <span class="plinth gp">
+                <img src={imgUrl(im.id, true)} alt="">
+                <span class="ov">
+                  <button type="button" class="btn sm" disabled={im.id === p.cover} onclick={() => save('cover_image_id', im.id)}>{t('setCover')}</button>
+                  <button type="button" class="ico sm del" aria-label={t('removeImg')} onclick={() => (ui.dialog = { type: 'confirm', title: t('removeImg'), onYes: () => mutate(() => api.del(`/images/${im.id}`)) })}>×</button>
+                </span>
+                {#if im.id === p.cover}<span class="star" title={t('setCover')}>★</span>{/if}
+              </span>
               <figcaption>
                 <select class="cell" value={im.variant_id ?? ''} aria-label={t('assignTo')} onchange={(e) => mutate(() => api.patch(`/images/${im.id}`, { variant_id: e.target.value ? Number(e.target.value) : null }))}>
                   <option value="">{t('productOnly')}</option>
                   {#each p.variants as v (v.id)}<option value={v.id}>{v.sku}</option>{/each}
                 </select>
-                <span class="row">
-                  <button type="button" class="btn sm" disabled={im.id === p.cover} onclick={() => save('cover_image_id', im.id)}>{im.id === p.cover ? '★ ' : ''}{t('setCover')}</button>
-                  <button type="button" class="ico sm" aria-label={t('removeImg')} onclick={() => (ui.dialog = { type: 'confirm', title: t('removeImg'), onYes: () => mutate(() => api.del(`/images/${im.id}`)) })}>×</button>
-                </span>
               </figcaption>
             </figure>
           {/each}
@@ -285,12 +303,15 @@
   .wrap { max-width: 1440px; margin: 0 auto; padding: 18px 16px 48px; display: flex; flex-direction: column; gap: 18px; }
   .top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
   .tt { display: flex; flex-direction: column; }
+  .crumbs { display: flex; gap: 8px; font-size: 13px; color: var(--muted); }
+  .crumbs a { color: inherit; }
+  .right .tbl td, .right .tbl th { padding-left: 6px; padding-right: 6px; }
   h1 { margin: 0; font-size: 24px; font-weight: 500; }
   .big { font-size: 18px; color: var(--brand); margin-right: 6px; }
   .sp { flex: 1; }
   a.ico { color: var(--ink); }
   .cols { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
-  .left { flex: 1 1 360px; max-width: 460px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .left { flex: 1 1 340px; max-width: 400px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
   .right { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
   @media (max-width: 900px) { .left { max-width: none; } }
   .f1 { flex: 1 1 auto; }
@@ -301,24 +322,38 @@
   .vb.on::before { content: '✓'; font-weight: 700; }
   .cd { font-size: 11px; color: var(--brand); font-weight: 700; }
   .al { align-self: flex-start; }
-  .vth { width: 52px; padding: 4px 8px; }
-  .vth img { width: 44px; height: 34px; object-fit: contain; display: block; border-radius: 6px; background: var(--bg); }
-  .vth:global([data-over]) { outline: 3px dashed var(--brand); background: var(--sand); }
+  .vth { width: 56px; padding: 4px 6px; }
+  .tp { width: 48px; height: 34px; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--plinth-ink); font-weight: 600; }
+  .tp::after, .gp::after { display: none; }
+  .tp img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
+  .vth:global([data-over]) .tp { outline: 3px dashed var(--brand); background: #EAD3B1; }
+  .vit { margin: 0; aspect-ratio: 4 / 3; border-radius: 20px; display: flex; align-items: center; justify-content: center; }
+  .vit img { width: 100%; height: 100%; object-fit: contain; padding: 8% 10%; position: relative; z-index: 1; }
+  .vit figcaption { position: absolute; left: 14px; bottom: 12px; z-index: 2; color: var(--plinth-ink); font-size: 12px; }
+  .vit:global([data-over]) { outline: 3px dashed var(--plinth-ink); outline-offset: -8px; background: #EAD3B1; }
+  .rail { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 0 4px; }
   .mini { width: 44px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border-width: 1.5px; font-weight: 700; }
   .skucell { display: inline-flex; align-items: center; gap: 6px; }
   .skuin { width: 118px; font-weight: 700; }
   .vsel { display: inline-flex; align-items: center; gap: 6px; }
-  .vsel .cell { width: auto; max-width: 130px; }
+  .vsel .cell { width: auto; max-width: 128px; }
   .stbtn { border: 0; background: none; padding: 0; }
   .emp { text-align: center; padding: 24px; }
   .bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--panel); }
   .gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-  figure { margin: 0; border-radius: 14px; background: var(--bg); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
-  figure.cover { box-shadow: 0 0 0 2.5px var(--ink); }
-  figure img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; }
+  .gi { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+  .gp { aspect-ratio: 4 / 3; border-radius: 12px; display: block; }
+  .gp img { width: 100%; height: 100%; object-fit: contain; padding: 6px; display: block; }
+  .gi.cover .gp { box-shadow: 0 0 0 2.5px var(--ink); }
+  .star { position: absolute; top: 6px; left: 8px; color: var(--plinth-ink); font-size: 14px; }
+  .ov { position: absolute; inset: auto 6px 6px 6px; display: flex; justify-content: space-between; gap: 6px; opacity: 0; transition: opacity 0.12s; }
+  .gp:hover .ov, .gp:focus-within .ov { opacity: 1; }
+  @media (hover: none) { .ov { opacity: 1; } }
+  .ov .btn { background: rgba(255, 255, 255, 0.92); color: #2A1410; height: 30px; padding: 0 10px; font-size: 12px; }
+  .ov .del { width: 30px; height: 30px; background: rgba(255, 255, 255, 0.92); color: #2A1410; }
   figcaption { display: flex; flex-direction: column; gap: 6px; }
   figcaption .cell { width: 100%; }
-  .gdrop { min-height: 150px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .gdrop { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
   .duo { display: flex; flex-wrap: wrap; gap: 18px; }
   .duo > .box { flex: 1 1 340px; }
   .mm { display: inline-flex; align-items: center; gap: 4px; }

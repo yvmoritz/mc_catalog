@@ -9,7 +9,15 @@
   const onProducts = $derived(page === 'products');
   const toggle = (k) => (open = open === k ? null : k);
   function onDocClick(e) { if (open && !e.target.closest('.pop')) open = null; }
-  function onKey(e) { if (e.key === 'Escape' && open) { open = null; e.stopPropagation(); } }
+  function onKey(e) {
+    if (e.key === 'Escape' && open) { open = null; e.stopPropagation(); return; }
+    // Kürzel: e = Bearbeiten, v = Liste/Visuell, n = neues Produkt
+    if (e.metaKey || e.ctrlKey || e.altKey || ui.dialog || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+    if (!onProducts) return;
+    if (e.key === 'v') setPref('view', ui.view === 'list' ? 'visual' : 'list');
+    else if (e.key === 'e') { if (ui.view !== 'visual') setPref('view', 'visual'); ui.edit = !ui.edit; }
+    else if (e.key === 'n') newProduct();
+  }
   async function pick(id) { open = null; await openTenant(id); go('products'); }
   async function newTenant() {
     open = null;
@@ -64,20 +72,20 @@
   <div class="sp"></div>
 
   {#if onProducts}
-    <div class="pillset" role="group" aria-label={t('visual')}>
+    <div class="pillset vt" role="group" aria-label={t('visual')}>
       <button type="button" class="pz" class:on={ui.view === 'list'} aria-pressed={ui.view === 'list'} onclick={() => setPref('view', 'list')}>{t('list')}</button>
       <button type="button" class="pz" class:on={ui.view === 'visual'} aria-pressed={ui.view === 'visual'} onclick={() => setPref('view', 'visual')}>{t('visual')}</button>
     </div>
     {#if ui.view === 'visual'}
-      <button type="button" role="switch" aria-checked={ui.edit} class="sw" class:on={ui.edit} onclick={() => (ui.edit = !ui.edit)}>
+      <button type="button" role="switch" aria-checked={ui.edit} class="sw edsw" class:on={ui.edit} title="{t('edit')} (E)" onclick={() => (ui.edit = !ui.edit)}>
         <span class="tr"><span class="kn"></span></span>{t('edit')}
       </button>
     {/if}
-    <button type="button" class="btn" onclick={() => (ui.dialog = { type: 'pdf' })}>
+    <button type="button" class="btn pdfb" title={t('pdf')} onclick={() => (ui.dialog = { type: 'pdf' })}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6M12 12v6M9 15l3 3 3-3"></path></svg>
       <span class="lbl">{t('pdf')}</span>
     </button>
-    <button type="button" class="btn primary" onclick={newProduct}>
+    <button type="button" class="btn primary newb" title="{t('newProduct')} (N)" onclick={newProduct}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
       <span class="lbl">{t('newProduct')}</span>
     </button>
@@ -142,9 +150,17 @@
   .sw.on .tr { background: var(--sand); }
   .sw.on .kn { left: 19px; background: var(--brand); }
   @media (max-width: 760px) {
+    header { gap: 8px; }
     .lbl { display: none; }
     .btn { padding: 0 14px; }
-    nav { order: 10; width: 100%; }
-    nav .pz { flex: 1; justify-content: center; }
+    .pop:first-child { order: 1; margin-right: auto; }
+    .sp { display: none; }
+    .pdfb { order: 3; } .newb { order: 4; } .pop:last-child { order: 5; }
+    nav { order: 10; flex: 1 1 auto; }
+    nav .pz { flex: 1; justify-content: center; padding: 0 10px; }
+    .vt { order: 11; }
+    .edsw { order: 12; }
+    .edsw, .vt .pz { font-size: 13px; }
   }
+  @media (max-width: 480px) { nav { flex-basis: 100%; } .vt { flex: 1; } .vt .pz { flex: 1; justify-content: center; } .edsw { padding: 0 12px 0 6px; } }
 </style>
