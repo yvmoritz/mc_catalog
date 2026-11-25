@@ -1,7 +1,8 @@
 <script>
-  import { ui, t, lab, api, mutate, money, go, imgUrl, uploadImage, toast, catOf, supOf, colorOpt, valueById, currencyOf, fmtNum } from '../lib/store.svelte.js';
+  import { ui, t, lab, api, mutate, valuesFor, money, go, imgUrl, uploadImage, toast, catOf, supOf, colorOpt, valueById, currencyOf, fmtNum } from '../lib/store.svelte.js';
   import { droppable } from '../lib/dnd.js';
   import Swatch from './Swatch.svelte';
+  import LocalValue from './LocalValue.svelte';
   import Status from './Status.svelte';
 
   const p = $derived(ui.data.products.find((x) => x.id === ui.route.id));
@@ -11,6 +12,7 @@
   const cur = $derived(p ? currencyOf(p) : '');
 
   let checked = $state(new Set());
+  let localFor = $state(null);
   let peek = $state(null); // Variante unter dem Zeiger → Vitrine zeigt ihr Bild
   const pv = $derived(p && peek ? p.variants.find((v) => v.id === peek) : null);
   const vimg = $derived(pv?.image_id ?? p?.cover);
@@ -159,14 +161,25 @@
           <div class="go">
             <span class="cap">{lab(o.labels, o.key)} · <span class="mono">{'{' + o.key + '}'}</span></span>
             <div class="vals">
-              {#each o.values as v (v.id)}
+              {#each valuesFor(o, p) as v (v.id)}
                 {@const on = gen[o.id]?.has(v.id)}
-                <button type="button" class="vb" class:on aria-pressed={on} onclick={() => toggleGen(o, v.id)}>
-                  {#if o.is_color}<Swatch value={v} size={16} />{/if}
+                <button type="button" class="vb" class:on class:loc={!!v.product_id} aria-pressed={on} onclick={() => toggleGen(o, v.id)}>
+                  {#if o.is_color}<Swatch value={v} size={14} chip />{/if}
                   <span>{lab(v.labels, v.code || '—')}</span><span class="mono cd">{v.code || '∅'}</span>
+                  {#if v.product_id}<span class="lt">{t('local')}</span>{/if}
                 </button>
               {/each}
+              {#if localFor !== o.id}<button type="button" class="vb add" onclick={() => (localFor = o.id)}>{t('addLocal')}</button>{/if}
             </div>
+            {#if localFor === o.id}<LocalValue {o} {p} onclose={() => (localFor = null)} />{/if}
+            {#each valuesFor(o, p).filter((v) => v.product_id) as v (v.id)}
+              <span class="promo cap">{t('local')}: <strong>{lab(v.labels, v.code)}</strong> ({v.code})
+                <button type="button" class="lnk" onclick={() => mutate(() => api.patch(`/values/${v.id}`, { product_id: null }))}>{t('makeTemplate')}</button>
+                {#if !p.variants.some((x) => Object.values(x.values).includes(v.id))}
+                  <button type="button" class="lnk" onclick={() => mutate(() => api.del(`/values/${v.id}`))}>{t('delete')}</button>
+                {/if}
+              </span>
+            {/each}
           </div>
         {/each}
         <button type="button" class="btn primary sm al" disabled={!genCount} onclick={generate}>{t('generate')}{genCount ? ` (${genCount})` : ''}</button>
@@ -207,7 +220,7 @@
                         {#if o.is_color}<Swatch value={valueById(cat, v.values[o.id])} size={14} />{/if}
                         <select class="cell" value={v.values[o.id] ?? ''} aria-label={lab(o.labels, o.key)} onchange={(e) => setVal(v, o, e.target.value)}>
                           <option value="">—</option>
-                          {#each o.values as ov (ov.id)}<option value={ov.id}>{lab(ov.labels, ov.code)}{ov.code ? ' · ' + ov.code : ''}</option>{/each}
+                          {#each valuesFor(o, p) as ov (ov.id)}<option value={ov.id}>{lab(ov.labels, ov.code)}{ov.code ? ' · ' + ov.code : ''}</option>{/each}
                         </select>
                       </span>
                     </td>
@@ -306,8 +319,8 @@
   .crumbs { display: flex; gap: 8px; font-size: 13px; color: var(--muted); }
   .crumbs a { color: inherit; }
   .right .tbl td, .right .tbl th { padding-left: 6px; padding-right: 6px; }
-  h1 { margin: 0; font-size: 24px; font-weight: 500; }
-  .big { font-size: 18px; color: var(--brand); margin-right: 6px; }
+  h1 { margin: 0; font-size: 20px; font-weight: 500; }
+  .big { font-size: 14px; color: var(--brand); margin-right: 6px; }
   .sp { flex: 1; }
   a.ico { color: var(--ink); }
   .cols { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
@@ -321,6 +334,11 @@
   .vb.on { border-color: var(--ink); background: var(--pill); font-weight: 600; }
   .vb.on::before { content: '✓'; font-weight: 700; }
   .cd { font-size: 11px; color: var(--brand); font-weight: 700; }
+  .vb.loc { border-style: dashed; }
+  .lt { font-size: 10px; font-weight: 600; color: var(--muted); }
+  .vb.add { border-style: dashed; color: var(--ink2); background: transparent; }
+  .promo { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 12px; }
+  .lnk { border: 0; background: none; padding: 0; font-size: 12px; color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
   .al { align-self: flex-start; }
   .vth { width: 56px; padding: 4px 6px; }
   .tp { width: 48px; height: 34px; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--plinth-ink); font-weight: 600; }

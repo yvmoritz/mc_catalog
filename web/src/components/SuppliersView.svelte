@@ -16,7 +16,7 @@
 </script>
 
 <div class="wrap">
-  <div class="row"><h1 class="f1">{t('suppliers')}</h1><button type="button" class="btn primary" onclick={add}>+ {t('newSupplier')}</button></div>
+  <div class="row"><span class="cap f1">{list.length} / {d.suppliers.length}</span><button type="button" class="btn sm" onclick={add}>+ {t('newSupplier')}</button></div>
   <div class="card tbl-wrap">
     <table class="tbl">
       <thead><tr><th>{t('supplier')}</th><th>{t('supCode')}</th><th>{t('contact')}</th><th>{t('currency')}</th><th>{t('incoterm')}</th><th>{t('leadTime')}</th><th>{t('moqNote')}</th><th>{t('status')}</th><th class="r">{t('products')}</th><th></th></tr></thead>

@@ -30,7 +30,10 @@ export async function catalogPdf(data, store, opts = {}) {
   const accent = data.tenant.color_accent || '#EAD3B1';
   const ink = '#1A1210', muted = '#6B6563', line = '#E2DEDD';
 
-  let products = data.products.filter((p) => p.status !== 'inactive' || opts.includeInactive);
+  // Status: Liste (active, draft, inactive) oder alt: alles außer inaktiv
+  const sts = opts.statuses?.length ? opts.statuses : (opts.includeInactive ? ['active', 'draft', 'inactive'] : ['active', 'draft']);
+  const varOk = (v) => v.status === 'active' || sts.includes('inactive');
+  let products = data.products.filter((p) => sts.includes(p.status));
   if (opts.supplierId) products = products.filter((p) => p.supplier_id === opts.supplierId);
   if (opts.categoryId) products = products.filter((p) => p.category_id === opts.categoryId);
   if (opts.productIds?.length) products = products.filter((p) => opts.productIds.includes(p.id));
@@ -102,7 +105,7 @@ export async function catalogPdf(data, store, opts = {}) {
   }
   doc.fillColor(accent).font('l').fontSize(14).text(t.title.toUpperCase(), M, ty, { characterSpacing: 3 });
   doc.fillColor('#FFFFFF').font('l').fontSize(44).text(data.tenant.name, M, ty + 30, { width: CW });
-  const nVar = products.reduce((s, p) => s + p.variants.filter((v) => v.status === 'active' || opts.includeInactive).length, 0);
+  const nVar = products.reduce((s, p) => s + p.variants.filter(varOk).length, 0);
   doc.fillColor(accent).font('r').fontSize(12).text(`${products.length} ${t.models} · ${nVar} ${t.variants}`, M, doc.y + 12);
   const sups = [...new Set(products.map((p) => supById.get(p.supplier_id)?.name).filter(Boolean))];
   if (sups.length) doc.fillColor('#FFFFFF').fontSize(11).text(sups.join(' · '), M, doc.y + 6, { width: CW });
@@ -116,7 +119,7 @@ export async function catalogPdf(data, store, opts = {}) {
     const colorOpt = cat?.options.find((o) => o.is_color);
     const valById = new Map(cat?.options.flatMap((o) => o.values.map((v) => [v.id, { ...v, opt: o }])) || []);
     const cur = p.currency || sup?.currency || data.tenant.currency;
-    const vars = p.variants.filter((v) => v.status === 'active' || opts.includeInactive);
+    const vars = p.variants.filter(varOk);
 
     // Kopf
     let y = M;

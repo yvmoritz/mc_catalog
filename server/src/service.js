@@ -349,13 +349,26 @@ export class Service {
     if (!v) throw new HttpError(404, 'not_found', 'Wert nicht gefunden');
     return v;
   }
+  /** Code je Option eindeutig (Vorlagen und lokale Werte zusammen), damit SKUs eindeutig bleiben */
+  codeTaken(optId, code, exceptId = 0) {
+    const r = this.get(`SELECT v.id, v.product_id, p.base_no FROM opt_value v LEFT JOIN product p ON p.id = v.product_id
+      WHERE v.opt_id = ? AND v.code = ? AND v.id != ?`, optId, code, exceptId);
+    if (r) throw new HttpError(409, 'exists', `Code „${code || '(leer)'}“ existiert schon${r.product_id ? ` (lokal bei ${r.base_no})` : ''}`);
+  }
+  /** b.product_id: lokaler Wert nur für dieses Produkt */
   createValue(optId, b, by) {
     const o = this.opt(optId);
     const code = normCode(b.code).slice(0, 12);
-    if (this.get('SELECT 1 FROM opt_value WHERE opt_id = ? AND code = ?', optId, code)) throw new HttpError(409, 'exists', `Code „${code || '(leer)'}“ existiert schon`);
+    this.codeTaken(optId, code);
+    let productId = null;
+    if (b.product_id) {
+      const p = this.product(Number(b.product_id));
+      if (p.category_id !== o.category_id) throw new HttpError(400, 'invalid', 'Produkt hat andere Kategorie');
+      productId = p.id;
+    }
     const sort = this.get('SELECT COALESCE(MAX(sort), 0) + 1 n FROM opt_value WHERE opt_id = ?', optId).n;
-    const r = this.run('INSERT INTO opt_value (opt_id, code, labels, hex, hex2, hex3, ek_delta, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      optId, code, labels(b.labels) ?? '{}', hex(b.hex) ?? null, hex(b.hex2) ?? null, hex(b.hex3) ?? null, num(b.ek_delta) ?? 0, sort);
+    const r = this.run('INSERT INTO opt_value (opt_id, product_id, code, labels, hex, hex2, hex3, ek_delta, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      optId, productId, code, labels(b.labels) ?? '{}', hex(b.hex) ?? null, hex(b.hex2) ?? null, hex(b.hex3) ?? null, num(b.ek_delta) ?? 0, sort);
     this.emit(o.tenant_id, 'option', by);
     return { ...this.value(Number(r.lastInsertRowid)) };
   }
@@ -364,9 +377,20 @@ export class Service {
     let code;
     if (b.code !== undefined) {
       code = normCode(b.code).slice(0, 12);
-      if (code !== v.code && this.get('SELECT 1 FROM opt_value WHERE opt_id = ? AND code = ?', v.opt_id, code)) throw new HttpError(409, 'exists', 'Code existiert schon');
+      if (code !== v.code) this.codeTaken(v.opt_id, code, id);
     }
-    this.patch('opt_value', id, { code, labels: labels(b.labels), hex: hex(b.hex), hex2: hex(b.hex2), hex3: hex(b.hex3), ek_delta: num(b.ek_delta) ?? undefined, sort: int(b.sort) });
+    let product_id;
+    if (b.product_id !== undefined) {
+      if (b.product_id === null) product_id = null; // lokal → Vorlage
+      else {
+        const p = this.product(Number(b.product_id));
+        if (p.category_id !== v.category_id) throw new HttpError(400, 'invalid', 'Produkt hat andere Kategorie');
+        const other = this.get('SELECT 1 FROM variant_value vv JOIN variant x ON x.id = vv.variant_id WHERE vv.opt_value_id = ? AND x.product_id != ? LIMIT 1', id, p.id);
+        if (other) throw new HttpError(409, 'in_use', 'Wert wird von anderen Produkten benutzt');
+        product_id = p.id;
+      }
+    }
+    this.patch('opt_value', id, { code, product_id, labels: labels(b.labels), hex: hex(b.hex), hex2: hex(b.hex2), hex3: hex(b.hex3), ek_delta: num(b.ek_delta) ?? undefined, sort: int(b.sort) });
     this.emit(v.tenant_id, 'option', by);
     return this.value(id);
   }
@@ -460,6 +484,9 @@ export class Service {
     this.tx(() => {
       for (const t of this.all('SELECT * FROM price_tier WHERE product_id = ?', id)) this.run('INSERT INTO price_tier (product_id, qty_from, ek, note) VALUES (?, ?, ?, ?)', np.id, t.qty_from, t.ek, t.note);
       for (const s of this.all('SELECT * FROM surcharge WHERE product_id = ?', id)) this.run('INSERT INTO surcharge (product_id, label, cond, amount_min, amount_max) VALUES (?, ?, ?, ?, ?)', np.id, s.label, s.cond, s.amount_min, s.amount_max);
+      // lokale Werte, die die Kopie mitbenutzt, werden zur Vorlage (jetzt in zwei Produkten)
+      this.run(`UPDATE opt_value SET product_id = NULL WHERE product_id = ? AND id IN
+        (SELECT vv.opt_value_id FROM variant_value vv JOIN variant x ON x.id = vv.variant_id WHERE x.product_id = ?)`, id, id);
       for (const v of this.all('SELECT * FROM variant WHERE product_id = ?', id)) {
         const values = Object.fromEntries(this.all('SELECT opt_id, opt_value_id FROM variant_value WHERE variant_id = ?', v.id).map((r) => [r.opt_id, r.opt_value_id]));
         this.insertVariant(np, { values, supplier_sku: v.supplier_sku, ek: v.ek, moq: v.moq, status: v.status });
@@ -482,6 +509,7 @@ export class Service {
       if (v === null || v === undefined || v === '') continue;
       const val = this.value(Number(v));
       if (val.opt_id !== Number(o) || val.category_id !== p.category_id) throw new HttpError(400, 'invalid', 'Wert passt nicht zur Kategorie');
+      if (val.product_id && val.product_id !== p.id) throw new HttpError(400, 'invalid', `Wert „${val.code}“ ist lokal bei einem anderen Produkt`);
       out[Number(o)] = val.id;
     }
     return out;
@@ -528,8 +556,8 @@ export class Service {
         const opt = this.opt(Number(o));
         if (opt.category_id !== p.category_id) throw new HttpError(400, 'invalid', 'Option passt nicht zur Kategorie');
         const code = normCode(nv.code).slice(0, 12);
-        const ex = this.get('SELECT id FROM opt_value WHERE opt_id = ? AND code = ?', opt.id, code);
-        values[o] = ex ? ex.id : this.createValue(opt.id, nv, by).id;
+        const ex = this.get('SELECT id FROM opt_value WHERE opt_id = ? AND code = ? AND (product_id IS NULL OR product_id = ?)', opt.id, code, p.id);
+        values[o] = ex ? ex.id : this.createValue(opt.id, { ...nv, product_id: nv.local ? p.id : null }, by).id;
       }
       return this.insertVariant(p, { ...b, values });
     });

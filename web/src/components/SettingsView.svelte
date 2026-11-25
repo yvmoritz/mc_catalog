@@ -71,7 +71,6 @@
 </script>
 
 <div class="wrap">
-  <h1>{t('settings')} · {tn.name}</h1>
 
   <div class="cols">
     <section class="box">
@@ -153,7 +152,7 @@
             <table class="tbl">
               <thead><tr>{#if o.is_color}<th>{t('color')}</th>{/if}<th>{t('code')}</th>{#each LANGS as l (l)}<th>{l.toUpperCase()}</th>{/each}<th class="r">{t('surcharge')}</th><th></th></tr></thead>
               <tbody>
-                {#each o.values as v (v.id)}
+                {#each o.values.filter((x) => !x.product_id) as v (v.id)}
                   <tr>
                     {#if o.is_color}
                       <td><span class="cl"><Glasses value={v} width={58} />
@@ -178,6 +177,20 @@
             </table>
           </div>
           <button type="button" class="btn sm al" onclick={() => addVal(o)}>+ {t('value')}</button>
+          {#if o.values.some((x) => x.product_id)}
+            <div class="locs">
+              <span class="cap">{t('localValues')}</span>
+              {#each o.values.filter((x) => x.product_id) as v (v.id)}
+                {@const pr = d.products.find((x) => x.id === v.product_id)}
+                <span class="lrow">
+                  <Glasses value={v} width={36} />
+                  <span><strong>{lab(v.labels, v.code)}</strong> <span class="sku">{v.code}</span></span>
+                  <a class="cap" href="#/product/{v.product_id}">{pr ? `${pr.base_no} ${pr.name}` : ''}</a>
+                  <button type="button" class="btn sm ghost" onclick={() => saveV(v, 'product_id', null)}>{t('makeTemplate')}</button>
+                </span>
+              {/each}
+            </div>
+          {/if}
         </div>
       {/each}
       <button type="button" class="btn sm al" onclick={() => addOpt(c)}>+ {t('newOption')}</button>
@@ -229,6 +242,9 @@
   .lab { display: inline-flex; align-items: center; gap: 4px; }
   .lab .cell { width: 110px; }
   .chk { display: inline-flex; align-items: center; gap: 6px; }
+  .locs { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+  .lrow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 14px; }
+  .lrow a { color: var(--ink2); }
   .cl { display: inline-flex; align-items: center; gap: 10px; }
   .cp { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; font-size: 10px; font-weight: 500; color: var(--muted); position: relative; }
   /* leer: gestricheltes Feld mit +, statt Weiß vorzutäuschen */

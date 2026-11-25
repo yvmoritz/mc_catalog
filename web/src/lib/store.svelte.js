@@ -236,6 +236,9 @@ export function valueById(cat, id) {
   for (const o of cat?.options || []) for (const v of o.values) if (v.id === id) return { ...v, opt: o };
   return null;
 }
+/** Werte einer Option, die ein Produkt nutzen darf: Vorlagen + eigene lokale Werte */
+export const normCodeUi = (s) => String(s ?? '').toUpperCase().replace(/[^A-Z0-9._-]/g, '');
+export function valuesFor(o, p) { return o.values.filter((v) => !v.product_id || v.product_id === p?.id); }
 export function currencyOf(p) { return p.currency || supOf(p)?.currency || ui.data?.tenant.currency || ''; }
 
 export function filteredProducts() {

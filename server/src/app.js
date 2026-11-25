@@ -141,7 +141,8 @@ export function buildApp(opts) {
     const pdf = await catalogPdf(data, store, {
       logo: logoOf('dark') || logoOf('light'),
       lang: q.lang, supplierId: q.supplier ? Number(q.supplier) : null, categoryId: q.category ? Number(q.category) : null,
-      includeInactive: q.inactive === '1', productIds: q.products ? String(q.products).split(',').map(Number).filter(Boolean) : null,
+      includeInactive: q.inactive === '1',
+      statuses: q.status ? String(q.status).split(',').filter((x) => ['active', 'draft', 'inactive'].includes(x)) : null, productIds: q.products ? String(q.products).split(',').map(Number).filter(Boolean) : null,
     });
     const file = `${data.tenant.slug}-catalogo-${new Date().toISOString().slice(0, 10)}.pdf`;
     return reply.header('Content-Type', 'application/pdf').header('Content-Disposition', `${q.download === '1' ? 'attachment' : 'inline'}; filename="${file}"`).send(pdf);

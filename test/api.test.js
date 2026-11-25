@@ -184,3 +184,45 @@ test('colour value has frame 1, frame 2 and lens', async () => {
   r = await admin('GET', `/api/tenants/${t.id}/catalog.pdf?inactive=1`);
   assert.equal(r.status, 200);
 });
+
+test('local option values: product-only colour, code uniqueness, duplicate promotes, pdf status filter', async () => {
+  const { admin } = setup();
+  const [t] = (await admin('GET', '/api/tenants')).json();
+  let full = (await admin('GET', `/api/tenants/${t.id}/full`)).json();
+  const p = full.products[0];
+  const farbe = full.categories[0].options.find((o) => o.is_color);
+  const pol = full.categories[0].options.find((o) => o.key === 'pol');
+  const pNo = pol.values.find((v) => v.code === '').id;
+  // Sonderfarbe nur für X123
+  let r = await admin('POST', `/api/products/${p.id}/variants`, { values: { [pol.id]: pNo }, new_values: { [farbe.id]: { code: 'SPC', labels: { de: 'Sonder' }, hex: '#AA00AA', local: true } } });
+  assert.equal(r.status, 201, JSON.stringify(r.json()));
+  assert.equal(r.json().sku, 'X123.SPC');
+  full = (await admin('GET', `/api/tenants/${t.id}/full`)).json();
+  const spc = full.categories[0].options.find((o) => o.is_color).values.find((v) => v.code === 'SPC');
+  assert.equal(spc.product_id, p.id);
+  // anderes Produkt darf den lokalen Wert nicht benutzen und den Code nicht neu anlegen
+  const p2 = (await admin('POST', `/api/tenants/${t.id}/products`, { name: 'Otro' })).json();
+  r = await admin('POST', `/api/products/${p2.id}/variants`, { values: { [farbe.id]: spc.id } });
+  assert.equal(r.status, 400);
+  r = await admin('POST', `/api/options/${farbe.id}/values`, { code: 'SPC' });
+  assert.equal(r.status, 409);
+  assert.match(r.json().message, /lokal bei X123/);
+  // als Vorlage freigeben → jetzt nutzbar
+  r = await admin('PATCH', `/api/values/${spc.id}`, { product_id: null });
+  assert.equal(r.json().product_id, null);
+  r = await admin('POST', `/api/products/${p2.id}/variants`, { values: { [farbe.id]: spc.id } });
+  assert.equal(r.status, 201);
+  // zurück auf lokal geht nicht mehr (zwei Produkte)
+  r = await admin('PATCH', `/api/values/${spc.id}`, { product_id: p.id });
+  assert.equal(r.status, 409);
+  // Duplizieren mit lokalem Wert: Wert wird Vorlage
+  const loc = (await admin('POST', `/api/options/${farbe.id}/values`, { code: 'LOC', hex: '#123456', product_id: p.id })).json();
+  await admin('POST', `/api/products/${p.id}/variants`, { values: { [farbe.id]: loc.id, [pol.id]: pNo } });
+  r = await admin('POST', `/api/products/${p.id}/duplicate`);
+  assert.equal(r.status, 201, JSON.stringify(r.json()));
+  full = (await admin('GET', `/api/tenants/${t.id}/full`)).json();
+  assert.equal(full.categories[0].options.find((o) => o.is_color).values.find((v) => v.code === 'LOC').product_id, null);
+  // PDF nur Entwürfe
+  r = await admin('GET', `/api/tenants/${t.id}/catalog.pdf?status=draft`);
+  assert.equal(r.status, 200);
+});

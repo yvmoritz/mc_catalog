@@ -54,7 +54,7 @@
 <div class="wrap">
   {#if ui.edit}
     <div class="editbar" role="status">
-      <strong>{t('editOn')}</strong>
+      <strong class="eo">{t('editOn')}</strong>
       <span>{t('editHint')}</span>
       {#if ui.busy}<span class="busy">{t('dropping')}</span>{/if}
       {#if ui.undo}
@@ -98,15 +98,18 @@
   .wrap > :global(.fl) { padding-top: 24px; }
   .editbar {
     position: sticky; top: 0; z-index: 10; margin: 0 -16px; padding: 10px 24px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
-    background: var(--sand); color: var(--on-sand); font-size: 14px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); color: var(--ink2); font-size: 13px;
+    border-bottom: 1px solid var(--line);
   }
   .editbar + :global(.fl) { padding-top: 0; }
+  .eo { color: var(--brand); display: inline-flex; align-items: center; gap: 6px; }
+  .eo::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
   .busy::before { content: '⟳ '; }
   .undo { margin-left: auto; }
   .undo button { border: 0; background: none; color: inherit; text-decoration: underline; font-weight: 600; padding: 0; }
   section { display: flex; flex-direction: column; gap: 16px; }
   .gh { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
-  .gh h2 { margin: 0; font-weight: 300; font-size: 26px; letter-spacing: -0.005em; }
+  .gh h2 { margin: 0; font-weight: 400; font-size: 19px; letter-spacing: -0.005em; }
   .gc { font-size: 14px; color: var(--muted); margin-right: auto; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 16px; align-items: start; }
   .newm { min-height: 280px; align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; border-radius: 20px; }

@@ -97,10 +97,10 @@
         <span class="tr"><span class="kn"></span></span>{t('edit')}
       </button>
     {/if}
-    <button type="button" class="btn pdfb dsk" title={t('pdf')} onclick={() => (ui.dialog = { type: 'pdf' })}>
+    {#if ui.view === 'visual'}<button type="button" class="btn pdfb dsk" title={t('pdf')} onclick={() => (ui.dialog = { type: 'pdf' })}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6M12 12v6M9 15l3 3 3-3"></path></svg>
       <span class="lbl">{t('pdf')}</span>
-    </button>
+    </button>{/if}
     <button type="button" class="btn primary newb dsk" title="{t('newProduct')} (N)" onclick={newProduct}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
       <span class="lbl">{t('newProduct')}</span>
@@ -155,7 +155,7 @@
           </button>
         </div>
         <div class="drow">
-          <button type="button" class="btn grow" onclick={() => { open = null; ui.dialog = { type: 'pdf' }; }}>{t('pdf')}</button>
+          {#if ui.view === 'visual'}<button type="button" class="btn grow" onclick={() => { open = null; ui.dialog = { type: 'pdf' }; }}>{t('pdf')}</button>{/if}
           <button type="button" class="btn primary grow" onclick={() => { open = null; newProduct(); }}>{t('newProduct')}</button>
         </div>
       {/if}
@@ -184,6 +184,7 @@
   .search { flex: 1 1 200px; max-width: 420px; margin: 0 auto; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 12px; border-radius: 999px; background: var(--bg); color: var(--muted); box-shadow: inset 0 0 0 1px transparent; }
   .search:focus-within { box-shadow: inset 0 0 0 1.5px var(--brand); background: var(--surface); }
   .search input { border: 0; outline: 0; background: transparent; font-size: 15px; width: 100%; min-width: 0; color: var(--ink); }
+  @media (pointer: fine) { .search { height: 36px; } .limg { height: 34px; } }
   .search input::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
   .clr { width: 28px; height: 28px; margin-right: -6px; border: 0; border-radius: 50%; background: var(--pill); color: var(--ink2); display: inline-flex; align-items: center; justify-content: center; flex: none; }
   .clr:hover { background: var(--hover); }
@@ -209,13 +210,13 @@
   .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
   .grp { padding: 8px 6px 2px; }
   .btn { display: inline-flex; align-items: center; gap: 8px; }
-  .sw { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 8px; border: 0; border-radius: 999px; background: var(--pill); font-size: 14px; font-weight: 500; }
-  .tr { width: 40px; height: 24px; border-radius: 999px; background: var(--hover); position: relative; transition: background 0.15s; }
-  .kn { position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); transition: left 0.15s; }
+  .sw { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px 0 8px; border: 0; border-radius: 999px; background: var(--pill); font-size: 14px; font-weight: 500; }
+  .tr { width: 34px; height: 20px; border-radius: 999px; background: var(--hover); position: relative; transition: background 0.15s; }
+  .kn { position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); transition: left 0.15s; }
   /* An: Knopf rechts + Häkchen-Form, nicht nur Farbe */
-  .sw.on { background: var(--brand); color: var(--on-brand); font-weight: 600; }
-  .sw.on .tr { background: var(--sand); }
-  .sw.on .kn { left: 19px; background: var(--brand); }
+  .sw.on { color: var(--ink); font-weight: 600; }
+  .sw.on .tr { background: var(--brand); }
+  .sw.on .kn { left: 17px; background: var(--surface); }
   .mob, .drawer { display: none; }
   @media (max-width: 760px) {
     .dsk { display: none !important; }

@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { ui, t, lab, api, mutate, uploadImage, setUndo, toast, catOf, supOf } from '../lib/store.svelte.js';
+  import { ui, t, lab, api, mutate, uploadImage, setUndo, toast, catOf, supOf, valuesFor } from '../lib/store.svelte.js';
   import { renderSku, normCode } from '$shared/sku.js';
   import { guessColor } from '../lib/color.js';
   import Swatch from './Swatch.svelte';
@@ -26,12 +26,12 @@
     const used = (oid) => new Set(p.variants.map((v) => v.values[oid]));
     for (const o of cat.options) {
       if (o.is_color) {
-        const free = o.values.find((v) => !used(o.id).has(v.id));
+        const free = valuesFor(o, p).find((v) => !used(o.id).has(v.id));
         pick[o.id] = src ? 'new' : (free?.id ?? 'new');
-        nv[o.id] = { code: '', name: '', hex: '#888888', hex2: '', hex3: '#5B6168' };
+        nv[o.id] = { code: '', name: '', hex: '#888888', hex2: '', hex3: '#5B6168', local: true };
       } else {
-        pick[o.id] = o.values[0]?.id ?? 'new';
-        nv[o.id] = { code: '', name: '', hex: '', hex2: '', hex3: '' };
+        pick[o.id] = valuesFor(o, p)[0]?.id ?? 'new';
+        nv[o.id] = { code: '', name: '', hex: '', hex2: '', hex3: '', local: true };
       }
     }
     setSource(src);
@@ -57,7 +57,7 @@
     for (const o of cat.options) {
       if (pick[o.id] === 'new') {
         const n = nv[o.id];
-        new_values[o.id] = { code: n.code, labels: n.name ? { es: n.name, de: n.name, en: n.name } : undefined, hex: o.is_color ? n.hex : undefined, hex2: o.is_color && n.hex2 ? n.hex2 : undefined, hex3: o.is_color && n.hex3 ? n.hex3 : undefined };
+        new_values[o.id] = { code: n.code, labels: n.name ? { es: n.name, de: n.name, en: n.name } : undefined, hex: o.is_color ? n.hex : undefined, hex2: o.is_color && n.hex2 ? n.hex2 : undefined, hex3: o.is_color && n.hex3 ? n.hex3 : undefined, local: n.local };
       } else if (pick[o.id]) values[o.id] = pick[o.id];
     }
     try {
@@ -96,12 +96,12 @@
           <span>{lab(o.labels, o.key)}</span>
           {#if o.is_color}
             <div class="sws">
-              {#each o.values as v (v.id)}<Swatch value={v} size={18} chip selected={pick[o.id] === v.id} onclick={() => (pick[o.id] = v.id)} />{/each}
+              {#each valuesFor(o, p) as v (v.id)}<Swatch value={v} size={18} chip selected={pick[o.id] === v.id} onclick={() => (pick[o.id] = v.id)} />{/each}
               <button type="button" class="newb" class:on={pick[o.id] === 'new'} aria-pressed={pick[o.id] === 'new'} onclick={() => (pick[o.id] = 'new')}>{t('newValue')}</button>
             </div>
           {:else}
             <div class="pillset">
-              {#each o.values as v (v.id)}
+              {#each valuesFor(o, p) as v (v.id)}
                 <button type="button" class="pz" class:on={pick[o.id] === v.id} aria-pressed={pick[o.id] === v.id} onclick={() => (pick[o.id] = v.id)}>{lab(v.labels, v.code || '—')}</button>
               {/each}
               <button type="button" class="pz" class:on={pick[o.id] === 'new'} aria-pressed={pick[o.id] === 'new'} onclick={() => (pick[o.id] = 'new')}>+</button>
@@ -121,6 +121,7 @@
                 </span>
               {/if}
             </div>
+            <label class="loc"><input type="checkbox" bind:checked={nv[o.id].local}> {t('localOnly')}</label>
           {/if}
         </div>
       {/each}
@@ -155,6 +156,7 @@
   .code { width: 84px; text-transform: uppercase; }
   input[type='color'] { width: 32px; height: 32px; border: 0; padding: 0; background: none; border-radius: 8px; }
   .newrow { flex-wrap: wrap; }
+  .loc { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink2); margin-top: 6px; }
   .cols { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .cp { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 500; color: var(--muted); position: relative; }
   /* leer: gestricheltes Feld mit +, statt Weiß vorzutäuschen */
